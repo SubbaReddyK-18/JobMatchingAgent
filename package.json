@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "postinstall": "npm install --prefix client",
     "build": "npm run build --prefix client",
     "start": "node server/server.js",
     "dev": "concurrently -n \"BACKEND,CLIENT\" -c \"blue,green\" \"node server/server.js\" \"npm run dev --prefix client\"",
@@ -11,6 +12,9 @@
     "client": "npm run dev --prefix client",
     "seed": "node server/db/seed.js",
     "test": "node server/tests/production_audit.js"
+  },
+  "engines": {
+    "node": ">=20.0.0 <23.0.0"
   },
   "keywords": [],
   "author": "",
