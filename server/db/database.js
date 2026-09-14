@@ -1,4 +1,4 @@
-import sqlite3 from 'sqlite3';
+import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
@@ -14,79 +14,70 @@ if (!fs.existsSync(DATA_DIR)) {
 
 const DB_PATH = path.join(DATA_DIR, 'jobmatch.db');
 
-export class Database {
+export class SQLiteDatabase {
     constructor() {
-        this.db = new sqlite3.Database(DB_PATH, (err) => {
-            if (err) {
-                console.error('Error opening database:', err.message);
-            } else {
-                console.log('Connected to SQLite database at', DB_PATH);
-            }
-        });
-        this.db.run('PRAGMA foreign_keys = ON');
+        this.db = new Database(DB_PATH);
+        this.db.pragma('foreign_keys = ON');
+        console.log('Connected to SQLite database at', DB_PATH);
     }
 
     async init() {
-        return new Promise((resolve, reject) => {
-            this.db.exec(SCHEMA_SQL, (err) => {
-                if (err) {
-                    console.error('Error executing schema SQL:', err);
-                    reject(err);
-                } else {
-                    console.log('Database schema verified & ready.');
-                    resolve();
-                }
-            });
-        });
+        try {
+            this.db.exec(SCHEMA_SQL);
+            console.log('Database schema verified & ready.');
+            return Promise.resolve();
+        } catch (err) {
+            console.error('Error executing schema SQL:', err);
+            return Promise.reject(err);
+        }
     }
 
-    query(sql, params = []) {
-        return new Promise((resolve, reject) => {
-            this.db.all(sql, params, (err, rows) => {
-                if (err) {
-                    console.error('Query Error:', sql, err);
-                    reject(err);
-                } else {
-                    resolve(rows);
-                }
-            });
-        });
+    async query(sql, params = []) {
+        try {
+            const stmt = this.db.prepare(sql);
+            const rows = stmt.all(params);
+            return Promise.resolve(rows);
+        } catch (err) {
+            console.error('Query Error:', sql, err);
+            return Promise.reject(err);
+        }
     }
 
-    get(sql, params = []) {
-        return new Promise((resolve, reject) => {
-            this.db.get(sql, params, (err, row) => {
-                if (err) {
-                    console.error('Get Error:', sql, err);
-                    reject(err);
-                } else {
-                    resolve(row);
-                }
-            });
-        });
+    async get(sql, params = []) {
+        try {
+            const stmt = this.db.prepare(sql);
+            const row = stmt.get(params);
+            return Promise.resolve(row);
+        } catch (err) {
+            console.error('Get Error:', sql, err);
+            return Promise.reject(err);
+        }
     }
 
-    run(sql, params = []) {
-        return new Promise((resolve, reject) => {
-            this.db.run(sql, params, function(err) {
-                if (err) {
-                    console.error('Run Error:', sql, err);
-                    reject(err);
-                } else {
-                    resolve({ id: this.lastID, changes: this.changes });
-                }
-            });
-        });
+    async run(sql, params = []) {
+        try {
+            // Support multi-statement scripts if passed without params
+            if (params.length === 0 && sql.trim().includes(';') && sql.trim().split(';').filter(s => s.trim()).length > 1) {
+                this.db.exec(sql);
+                return Promise.resolve({ id: null, changes: 0 });
+            }
+            const stmt = this.db.prepare(sql);
+            const info = stmt.run(params);
+            return Promise.resolve({ id: info.lastInsertRowid, changes: info.changes });
+        } catch (err) {
+            console.error('Run Error:', sql, err);
+            return Promise.reject(err);
+        }
     }
 
-    close() {
-        return new Promise((resolve, reject) => {
-            this.db.close((err) => {
-                if (err) reject(err);
-                else resolve();
-            });
-        });
+    async close() {
+        try {
+            this.db.close();
+            return Promise.resolve();
+        } catch (err) {
+            return Promise.reject(err);
+        }
     }
 }
 
-export const db = new Database();
+export const db = new SQLiteDatabase();
