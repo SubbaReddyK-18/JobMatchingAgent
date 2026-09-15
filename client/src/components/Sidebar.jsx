@@ -14,18 +14,22 @@ import {
   FileText,
   MessageSquare,
   Sparkles,
-  Eye
+  Eye,
+  ChevronLeft,
+  ChevronRight,
+  Compass
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-export default function Sidebar({ activePage, currentView, onNavigate }) {
+export default function Sidebar({ activePage, currentView, onNavigate, isCollapsed, onToggleCollapse }) {
   const { user, logout } = useAuth();
   const role = user?.role || 'STUDENT';
   const currentPage = activePage || currentView;
 
-  // 1. Student Navigation (Exact 5 items from approved screenshot)
+  // 1. Student Navigation (Exact items from approved screenshots + Opportunities discovery)
   const studentNav = [
     { id: 'student-dashboard', label: 'Overview', icon: Home },
+    { id: 'student-opportunities', label: 'Opportunities', icon: Compass },
     { id: 'student-matches', label: 'My Matches', icon: Target },
     { id: 'preparation-center', label: 'Preparation', icon: BookOpen },
     { id: 'student-applications', label: 'Applications', icon: FileCheck2 },
@@ -73,45 +77,46 @@ export default function Sidebar({ activePage, currentView, onNavigate }) {
   };
 
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
       {/* Brand Header */}
-      <div style={{ padding: '24px 20px 18px', borderBottom: '1px solid rgba(255, 255, 255, 0.08)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <div style={{
-            width: '38px',
-            height: '38px',
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            fontWeight: 800,
-            fontSize: '1.25rem',
-            boxShadow: '0 4px 12px rgba(79, 70, 229, 0.4)'
-          }}>
-            <Sparkles size={20} />
+      <div className="sidebar-header">
+        <div className="sidebar-brand-wrapper">
+          <div className="sidebar-logo-icon">
+            <Sparkles size={18} />
           </div>
-          <div>
-            <h2 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#FFFFFF', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
-              JobMatch AI
-            </h2>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px' }}>
-              <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#818CF8', letterSpacing: '0.04em' }}>
-                Agent 50
-              </span>
-              <span style={{ fontSize: '0.625rem', color: '#64748B' }}>•</span>
-              <span style={{ fontSize: '0.6875rem', color: '#94A3B8' }}>
-                {role === 'STUDENT' ? 'Student Portal' : role === 'HOD' ? 'HOD (Read Only)' : 'Institution Panel'}
-              </span>
+          {!isCollapsed && (
+            <div className="sidebar-brand-text">
+              <h2 className="sidebar-title">
+                JobMatch AI
+              </h2>
+              <div className="sidebar-subtitle">
+                <span className="sidebar-agent-badge">
+                  Agent 50
+                </span>
+                <span className="sidebar-dot">•</span>
+                <span className="sidebar-role-name">
+                  {role === 'STUDENT' ? 'Student Portal' : role === 'HOD' ? 'HOD (Read Only)' : 'Institution Panel'}
+                </span>
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
-        {/* HOD Read-Only Pill */}
-        {role === 'HOD' && (
+        {/* Collapse / Expand Toggle Button */}
+        <button
+          onClick={onToggleCollapse}
+          className="sidebar-collapse-btn"
+          title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+          aria-label={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+        >
+          {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+        </button>
+      </div>
+
+      {/* HOD Read-Only Pill */}
+      {role === 'HOD' && !isCollapsed && (
+        <div style={{ padding: '0 16px', marginTop: '10px' }}>
           <div style={{
-            marginTop: '12px',
             backgroundColor: 'rgba(245, 158, 11, 0.15)',
             border: '1px solid rgba(245, 158, 11, 0.3)',
             borderRadius: '6px',
@@ -126,75 +131,76 @@ export default function Sidebar({ activePage, currentView, onNavigate }) {
             <Eye size={12} />
             <span>Read-Only Department View</span>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Navigation List */}
-      <div style={{ padding: '16px 0', flex: 1 }}>
+      <div className="sidebar-nav-container">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isActive = currentPage === item.id;
+          const isActive = currentPage === item.id || (item.id === 'student-opportunities' && currentPage === 'opportunity-details');
           return (
             <button
               key={item.id}
               onClick={() => onNavigate(item.id)}
               className={`sidebar-link ${isActive ? 'active' : ''}`}
-              style={{ width: 'calc(100% - 24px)', textAlign: 'left', border: 'none', background: isActive ? undefined : 'transparent' }}
+              title={isCollapsed ? item.label : undefined}
             >
-              <Icon size={18} />
-              <span>{item.label}</span>
+              <Icon size={18} className="sidebar-icon" />
+              {!isCollapsed && <span className="sidebar-label">{item.label}</span>}
             </button>
           );
         })}
       </div>
 
-      {/* Bottom Quote Card */}
-      <div style={{ padding: '0 16px 16px' }}>
-        <div style={{
-          backgroundColor: 'rgba(30, 41, 59, 0.7)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          borderRadius: '12px',
-          padding: '12px 14px',
-          marginBottom: '12px'
-        }}>
-          <p className="font-script" style={{ color: '#E2E8F0', fontSize: '0.9375rem', lineHeight: 1.3 }}>
-            {quote.title}
-          </p>
-          <p style={{ color: '#64748B', fontSize: '0.6875rem', marginTop: '4px' }}>
-            {quote.subtitle}
-          </p>
-        </div>
+      {/* Bottom Quote & User / Logout Actions */}
+      <div className="sidebar-footer">
+        {/* Quote Card (Hidden when collapsed) */}
+        {!isCollapsed && (
+          <div className="sidebar-quote-card">
+            <p className="font-script" style={{ color: '#E2E8F0', fontSize: '0.9375rem', lineHeight: 1.3 }}>
+              {quote.title}
+            </p>
+            <p style={{ color: '#64748B', fontSize: '0.6875rem', marginTop: '4px' }}>
+              {quote.subtitle}
+            </p>
+          </div>
+        )}
 
-        {/* User / Logout */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', paddingTop: '10px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
+        {/* User / Logout Controls */}
+        <div className={`sidebar-user-controls ${isCollapsed ? 'collapsed' : ''}`}>
           {role === 'STUDENT' ? (
             <button
               onClick={() => onNavigate('student-profile')}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer', fontSize: '0.8125rem' }}
+              className="sidebar-footer-btn"
+              title="Profile"
             >
               <User size={16} />
-              <span>Profile</span>
+              {!isCollapsed && <span>Profile</span>}
             </button>
           ) : role === 'T_AND_P' ? (
             <button
               onClick={() => onNavigate('tp-settings')}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'transparent', border: 'none', color: '#94A3B8', cursor: 'pointer', fontSize: '0.8125rem' }}
+              className="sidebar-footer-btn"
+              title="Settings"
             >
               <Settings size={16} />
-              <span>Settings</span>
+              {!isCollapsed && <span>Settings</span>}
             </button>
           ) : (
-            <div style={{ fontSize: '0.75rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Eye size={14} /> Read-Only
+            <div className="sidebar-readonly-badge" title="Read-Only Mode">
+              <Eye size={14} />
+              {!isCollapsed && <span>Read-Only</span>}
             </div>
           )}
 
           <button
             onClick={handleLogout}
-            style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'transparent', border: 'none', color: '#EF4444', cursor: 'pointer', fontSize: '0.8125rem', fontWeight: 600 }}
+            className="sidebar-logout-btn"
+            title="Logout"
           >
             <LogOut size={16} />
-            <span>Logout</span>
+            {!isCollapsed && <span>Logout</span>}
           </button>
         </div>
       </div>

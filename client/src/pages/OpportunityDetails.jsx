@@ -20,12 +20,42 @@ import {
 import RadialGauge from '../components/RadialGauge';
 import confetti from 'canvas-confetti';
 
-export default function OpportunityDetails({ jobId, onBack, onNavigate }) {
+export default function OpportunityDetails({ jobId, onBack, onNavigate, onPrepareRole }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('match_overview');
   const [applied, setApplied] = useState(false);
   const [applying, setApplying] = useState(false);
+
+  // Bookmark state
+  const [isBookmarked, setIsBookmarked] = useState(() => {
+    try {
+      const saved = localStorage.getItem('jobmatch_saved_opportunities');
+      const list = saved ? JSON.parse(saved) : [];
+      return list.includes(jobId || 'job_google_swe');
+    } catch {
+      return false;
+    }
+  });
+
+  const toggleBookmark = () => {
+    const id = jobId || 'job_google_swe';
+    try {
+      const saved = localStorage.getItem('jobmatch_saved_opportunities');
+      const list = saved ? JSON.parse(saved) : [];
+      let updated;
+      if (list.includes(id)) {
+        updated = list.filter(item => item !== id);
+        setIsBookmarked(false);
+      } else {
+        updated = [...list, id];
+        setIsBookmarked(true);
+      }
+      localStorage.setItem('jobmatch_saved_opportunities', JSON.stringify(updated));
+    } catch {
+      setIsBookmarked(prev => !prev);
+    }
+  };
 
   useEffect(() => {
     async function loadDeepDive() {
@@ -37,7 +67,7 @@ export default function OpportunityDetails({ jobId, onBack, onNavigate }) {
         if (res.ok) {
           const resData = await res.json();
           setData(resData);
-          if (resData.job.has_applied) setApplied(true);
+          if (resData.job?.has_applied) setApplied(true);
         }
       } catch (err) {
         console.error('Error fetching opportunity deep dive:', err);
@@ -56,7 +86,7 @@ export default function OpportunityDetails({ jobId, onBack, onNavigate }) {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         },
         body: JSON.stringify({ job_opening_id: jobId || 'job_google_swe' })
       });
@@ -88,14 +118,25 @@ export default function OpportunityDetails({ jobId, onBack, onNavigate }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       {/* Back button */}
-      <div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <button
-          onClick={onBack}
+          onClick={onBack || (() => onNavigate && onNavigate('student-matches'))}
           style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: '#4F46E5', fontWeight: 700, fontSize: '0.84375rem', cursor: 'pointer' }}
         >
           <ArrowLeft size={16} />
-          <span>Back to My Matches</span>
+          <span>Back to Opportunities & Matches</span>
         </button>
+
+        {onPrepareRole && (
+          <button
+            onClick={() => onPrepareRole(job)}
+            className="btn btn-outline btn-sm"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.78125rem' }}
+          >
+            <BookOpen size={14} color="#4F46E5" />
+            <span>Prepare for this Role</span>
+          </button>
+        )}
       </div>
 
       {/* Main Job Banner Card */}
@@ -146,8 +187,13 @@ export default function OpportunityDetails({ jobId, onBack, onNavigate }) {
           {/* Right Top Actions */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <button className="btn btn-outline btn-sm" style={{ padding: '8px' }}>
-                <Bookmark size={16} />
+              <button 
+                onClick={toggleBookmark}
+                title={isBookmarked ? 'Saved' : 'Bookmark Opportunity'}
+                className="btn btn-outline btn-sm" 
+                style={{ padding: '8px', color: isBookmarked ? '#4F46E5' : '#64748B', backgroundColor: isBookmarked ? '#EEF2FF' : '#FFFFFF' }}
+              >
+                <Bookmark size={16} fill={isBookmarked ? '#4F46E5' : 'none'} />
               </button>
 
               <button

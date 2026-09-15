@@ -1,11 +1,26 @@
-import React from 'react';
-import { Sparkles, ArrowRight, Play, CheckCircle2, Building2, Users, GraduationCap, ShieldCheck, TrendingUp, Award } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import React, { useState } from 'react';
+import { Sparkles, ArrowRight, Building2, Users, GraduationCap, ShieldCheck, Play } from 'lucide-react';
 
-export default function LandingPage({ onSelectPortal, onOpenLogin }) {
+export default function LandingPage({ onGetStarted, onSelectPortal, onOpenLogin }) {
+  const [activeNav, setActiveNav] = useState('home');
+
+  const scrollToSection = (sectionId) => {
+    setActiveNav(sectionId);
+    if (sectionId === 'portals' || sectionId === 'features') {
+      if (onGetStarted) onGetStarted();
+      else if (onSelectPortal) onSelectPortal();
+      return;
+    }
+    const element = document.getElementById(sectionId);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   const handlePortalClick = (role) => {
-    if (onOpenLogin) onOpenLogin(role);
-    else if (onSelectPortal) onSelectPortal('login');
+    if (onSelectPortal) onSelectPortal(role);
+    else if (onGetStarted) onGetStarted();
+    else if (onOpenLogin) onOpenLogin(role);
   };
 
   const logos = [
@@ -21,16 +36,25 @@ export default function LandingPage({ onSelectPortal, onOpenLogin }) {
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#FFFFFF', color: '#0F172A', overflowX: 'hidden' }}>
-      {/* Top Header */}
+      {/* Top Navbar matching s img1 */}
       <nav style={{
         maxWidth: '1280px',
         margin: '0 auto',
         padding: '20px 24px',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between'
+        justifyContent: 'space-between',
+        position: 'sticky',
+        top: 0,
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        backdropFilter: 'blur(8px)',
+        zIndex: 50
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {/* Brand Logo */}
+        <div 
+          onClick={() => scrollToSection('hero')} 
+          style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
+        >
           <div style={{
             width: '36px',
             height: '36px',
@@ -39,7 +63,8 @@ export default function LandingPage({ onSelectPortal, onOpenLogin }) {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            color: 'white'
+            color: 'white',
+            boxShadow: '0 4px 12px rgba(79, 70, 229, 0.35)'
           }}>
             <Sparkles size={18} />
           </div>
@@ -53,17 +78,58 @@ export default function LandingPage({ onSelectPortal, onOpenLogin }) {
           </div>
         </div>
 
+        {/* Navigation Items (Only Home, About, Features) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
-          <div style={{ display: 'flex', gap: '24px', fontSize: '0.875rem', fontWeight: 600, color: '#475569' }}>
-            <span style={{ color: '#4F46E5', cursor: 'pointer' }}>Home</span>
-            <span style={{ cursor: 'pointer' }}>About</span>
-            <span style={{ cursor: 'pointer' }}>Features</span>
-            <span style={{ cursor: 'pointer' }}>For Institutions</span>
-            <span style={{ cursor: 'pointer' }}>Contact</span>
+          <div style={{ display: 'flex', gap: '28px', fontSize: '0.875rem', fontWeight: 600 }}>
+            <span 
+              onClick={() => scrollToSection('hero')}
+              style={{ 
+                color: activeNav === 'hero' || activeNav === 'home' ? '#4F46E5' : '#475569', 
+                cursor: 'pointer',
+                transition: 'color 0.15s ease',
+                borderBottom: activeNav === 'hero' || activeNav === 'home' ? '2px solid #4F46E5' : '2px solid transparent',
+                paddingBottom: '4px'
+              }}
+            >
+              Home
+            </span>
+            <span 
+              onClick={() => {
+                setActiveNav('about');
+                if (onGetStarted) onGetStarted();
+              }}
+              style={{ 
+                color: activeNav === 'about' ? '#4F46E5' : '#475569', 
+                cursor: 'pointer',
+                transition: 'color 0.15s ease',
+                borderBottom: activeNav === 'about' ? '2px solid #4F46E5' : '2px solid transparent',
+                paddingBottom: '4px'
+              }}
+            >
+              About
+            </span>
+            <span 
+              onClick={() => {
+                setActiveNav('features');
+                if (onGetStarted) onGetStarted();
+              }}
+              style={{ 
+                color: activeNav === 'portals' || activeNav === 'features' ? '#4F46E5' : '#475569', 
+                cursor: 'pointer',
+                transition: 'color 0.15s ease',
+                borderBottom: activeNav === 'portals' || activeNav === 'features' ? '2px solid #4F46E5' : '2px solid transparent',
+                paddingBottom: '4px'
+              }}
+            >
+              Features
+            </span>
           </div>
 
           <button
-            onClick={() => onOpenLogin()}
+            onClick={() => {
+              if (onGetStarted) onGetStarted();
+              else if (onSelectPortal) onSelectPortal();
+            }}
             className="btn btn-primary"
             style={{ borderRadius: '999px', padding: '10px 22px' }}
           >
@@ -73,8 +139,8 @@ export default function LandingPage({ onSelectPortal, onOpenLogin }) {
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section style={{
+      {/* Hero Section matching s img1 */}
+      <section id="hero" style={{
         maxWidth: '1280px',
         margin: '0 auto',
         padding: '48px 24px 64px',
@@ -100,9 +166,13 @@ export default function LandingPage({ onSelectPortal, onOpenLogin }) {
             An AI-powered placement intelligence platform that connects students, companies and institutions — based on skills, interests and real outcomes.
           </p>
 
+          {/* CTAs matching s img1 */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '48px' }}>
             <button
-              onClick={() => onOpenLogin()}
+              onClick={() => {
+                if (onGetStarted) onGetStarted();
+                else if (onSelectPortal) onSelectPortal();
+              }}
               className="btn btn-primary btn-lg"
               style={{ borderRadius: '999px' }}
             >
@@ -111,12 +181,15 @@ export default function LandingPage({ onSelectPortal, onOpenLogin }) {
             </button>
 
             <button
-              onClick={() => handlePortalClick('STUDENT', 'student-dashboard')}
-              className="btn btn-secondary btn-lg"
+              onClick={() => {
+                if (onGetStarted) onGetStarted();
+                else if (onSelectPortal) onSelectPortal();
+              }}
+              className="btn btn-outline btn-lg"
               style={{ borderRadius: '999px' }}
             >
-              <Play size={16} fill="#475569" />
-              <span>Explore Live Demo</span>
+              <Play size={16} fill="#4F46E5" color="#4F46E5" />
+              <span>Watch Overview</span>
             </button>
           </div>
 
@@ -137,18 +210,18 @@ export default function LandingPage({ onSelectPortal, onOpenLogin }) {
           </div>
         </div>
 
-        {/* Hero Ecosystem Diagram (Interactive) */}
+        {/* Hero Ecosystem Central Glowing Orb with Connected Nodes */}
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{
             width: '460px',
             height: '420px',
             position: 'relative',
-            background: 'radial-gradient(circle at 50% 50%, rgba(79, 70, 229, 0.08) 0%, rgba(255,255,255,0) 70%)',
+            background: 'radial-gradient(circle at 50% 50%, rgba(79, 70, 229, 0.12) 0%, rgba(255,255,255,0) 70%)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            {/* Center Sphere */}
+            {/* Center Glowing Sphere */}
             <div style={{
               width: '150px',
               height: '150px',
@@ -170,19 +243,26 @@ export default function LandingPage({ onSelectPortal, onOpenLogin }) {
             </div>
 
             {/* Satellite 1: Students */}
-            <div style={{
-              position: 'absolute',
-              top: '20px',
-              left: '20px',
-              backgroundColor: '#FFFFFF',
-              border: '1px solid #E2E8F0',
-              borderRadius: '16px',
-              padding: '14px 18px',
-              boxShadow: '0 10px 25px rgba(0,0,0,0.06)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px'
-            }}>
+            <div 
+              onClick={() => handlePortalClick('STUDENT')}
+              style={{
+                position: 'absolute',
+                top: '20px',
+                left: '20px',
+                backgroundColor: '#FFFFFF',
+                border: '1px solid #E2E8F0',
+                borderRadius: '16px',
+                padding: '12px 16px',
+                boxShadow: '0 10px 25px rgba(0,0,0,0.06)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                cursor: 'pointer',
+                transition: 'transform 0.2s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+            >
               <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#4F46E5' }}>
                 <GraduationCap size={22} />
               </div>
@@ -193,19 +273,26 @@ export default function LandingPage({ onSelectPortal, onOpenLogin }) {
             </div>
 
             {/* Satellite 2: Companies */}
-            <div style={{
-              position: 'absolute',
-              top: '30px',
-              right: '10px',
-              backgroundColor: '#FFFFFF',
-              border: '1px solid #E2E8F0',
-              borderRadius: '16px',
-              padding: '14px 18px',
-              boxShadow: '0 10px 25px rgba(0,0,0,0.06)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px'
-            }}>
+            <div 
+              onClick={() => handlePortalClick('T_AND_P')}
+              style={{
+                position: 'absolute',
+                top: '30px',
+                right: '10px',
+                backgroundColor: '#FFFFFF',
+                border: '1px solid #E2E8F0',
+                borderRadius: '16px',
+                padding: '12px 16px',
+                boxShadow: '0 10px 25px rgba(0,0,0,0.06)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                cursor: 'pointer',
+                transition: 'transform 0.2s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+            >
               <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: '#ECFDF5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#10B981' }}>
                 <Building2 size={22} />
               </div>
@@ -216,19 +303,26 @@ export default function LandingPage({ onSelectPortal, onOpenLogin }) {
             </div>
 
             {/* Satellite 3: Institutions */}
-            <div style={{
-              position: 'absolute',
-              bottom: '20px',
-              right: '50px',
-              backgroundColor: '#FFFFFF',
-              border: '1px solid #E2E8F0',
-              borderRadius: '16px',
-              padding: '14px 18px',
-              boxShadow: '0 10px 25px rgba(0,0,0,0.06)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px'
-            }}>
+            <div 
+              onClick={() => handlePortalClick('HOD')}
+              style={{
+                position: 'absolute',
+                bottom: '20px',
+                right: '40px',
+                backgroundColor: '#FFFFFF',
+                border: '1px solid #E2E8F0',
+                borderRadius: '16px',
+                padding: '12px 16px',
+                boxShadow: '0 10px 25px rgba(0,0,0,0.06)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                cursor: 'pointer',
+                transition: 'transform 0.2s ease'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+            >
               <div style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: '#F5F3FF', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8B5CF6' }}>
                 <ShieldCheck size={22} />
               </div>
@@ -241,164 +335,12 @@ export default function LandingPage({ onSelectPortal, onOpenLogin }) {
         </div>
       </section>
 
-      {/* Choose Your Portal Section (Page 1 Bottom) */}
-      <section style={{ backgroundColor: '#F8FAFC', padding: '64px 24px', borderTop: '1px solid #E2E8F0', borderBottom: '1px solid #E2E8F0' }}>
-        <div style={{ maxWidth: '1280px', margin: '0 auto', textAlign: 'center' }}>
-          <div style={{ fontSize: '0.75rem', fontWeight: 800, color: '#4F46E5', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>
-            Welcome to JobMatch AI
-          </div>
-          <h2 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '12px', letterSpacing: '-0.02em' }}>
-            Choose Your <span style={{ color: '#4F46E5' }}>Portal</span>
-          </h2>
-          <p style={{ fontSize: '1rem', color: '#64748B', maxWidth: '600px', margin: '0 auto 48px' }}>
-            Different goals. A common mission. Smarter placements for a brighter future.
-          </p>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '28px', textAlign: 'left' }}>
-            {/* Student Portal Card */}
-            <div className="card" style={{ padding: '32px', borderRadius: '20px', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '12px',
-                backgroundColor: '#EEF2FF',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#4F46E5',
-                marginBottom: '20px'
-              }}>
-                <GraduationCap size={26} />
-              </div>
-              <h3 style={{ fontSize: '1.375rem', fontWeight: 800, marginBottom: '8px' }}>Student</h3>
-              <p style={{ fontSize: '0.875rem', color: '#64748B', lineHeight: 1.5, marginBottom: '24px' }}>
-                Discover opportunities that fit your skills, interests and career aspirations.
-              </p>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '32px', flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8125rem', color: '#334155' }}>
-                  <CheckCircle2 size={16} color="#10B981" />
-                  <span>Personalized job matches</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8125rem', color: '#334155' }}>
-                  <CheckCircle2 size={16} color="#10B981" />
-                  <span>Identify preparation & skill gaps</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8125rem', color: '#334155' }}>
-                  <CheckCircle2 size={16} color="#10B981" />
-                  <span>Track applications & interviews</span>
-                </div>
-              </div>
-
-              <button
-                onClick={() => handlePortalClick('STUDENT', 'student-dashboard')}
-                className="btn btn-primary"
-                style={{ width: '100%', padding: '12px' }}
-              >
-                <span>Continue as Student</span>
-                <ArrowRight size={16} />
-              </button>
-            </div>
-
-            {/* T&P Cell Portal Card */}
-            <div className="card" style={{ padding: '32px', borderRadius: '20px', display: 'flex', flexDirection: 'column', position: 'relative', border: '2px solid #818CF8' }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '12px',
-                backgroundColor: '#F5F3FF',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#7C3AED',
-                marginBottom: '20px'
-              }}>
-                <Building2 size={26} />
-              </div>
-              <h3 style={{ fontSize: '1.375rem', fontWeight: 800, marginBottom: '8px' }}>Training & Placement Cell</h3>
-              <p style={{ fontSize: '0.875rem', color: '#64748B', lineHeight: 1.5, marginBottom: '24px' }}>
-                Manage opportunities, find the right candidates with AI, and drive placement outcomes.
-              </p>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '32px', flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8125rem', color: '#334155' }}>
-                  <CheckCircle2 size={16} color="#10B981" />
-                  <span>AI Job Description structuring</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8125rem', color: '#334155' }}>
-                  <CheckCircle2 size={16} color="#10B981" />
-                  <span>Ranked candidate shortlists</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8125rem', color: '#334155' }}>
-                  <CheckCircle2 size={16} color="#10B981" />
-                  <span>Unmatched student intelligence</span>
-                </div>
-              </div>
-
-              <button
-                onClick={() => handlePortalClick('T_AND_P', 'tp-dashboard')}
-                className="btn btn-primary"
-                style={{ width: '100%', padding: '12px', background: 'linear-gradient(135deg, #7C3AED 0%, #4F46E5 100%)' }}
-              >
-                <span>Continue as T&P Cell</span>
-                <ArrowRight size={16} />
-              </button>
-            </div>
-
-            {/* HOD Portal Card */}
-            <div className="card" style={{ padding: '32px', borderRadius: '20px', display: 'flex', flexDirection: 'column', position: 'relative' }}>
-              <div style={{
-                width: '48px',
-                height: '48px',
-                borderRadius: '12px',
-                backgroundColor: '#ECFDF5',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#059669',
-                marginBottom: '20px'
-              }}>
-                <ShieldCheck size={26} />
-              </div>
-              <h3 style={{ fontSize: '1.375rem', fontWeight: 800, marginBottom: '8px' }}>Head of Department</h3>
-              <p style={{ fontSize: '0.875rem', color: '#64748B', lineHeight: 1.5, marginBottom: '24px' }}>
-                Understand department readiness, identify skill gaps, and make data-driven decisions. (Read-Only)
-              </p>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '32px', flex: 1 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8125rem', color: '#334155' }}>
-                  <CheckCircle2 size={16} color="#10B981" />
-                  <span>Department placement analytics</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8125rem', color: '#334155' }}>
-                  <CheckCircle2 size={16} color="#10B981" />
-                  <span>Curriculum & skill landscape insights</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8125rem', color: '#334155' }}>
-                  <CheckCircle2 size={16} color="#10B981" />
-                  <span>Students needing attention alerts</span>
-                </div>
-              </div>
-
-              <button
-                onClick={() => handlePortalClick('HOD', 'tp-dashboard')}
-                className="btn btn-primary"
-                style={{ width: '100%', padding: '12px', background: 'linear-gradient(135deg, #059669 0%, #10B981 100%)' }}
-              >
-                <span>Continue as HOD</span>
-                <ArrowRight size={16} />
-              </button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Trusted By Leading Companies */}
+      {/* Trusted By Leading Companies matching s img1 bottom */}
       <section style={{ maxWidth: '1280px', margin: '0 auto', padding: '48px 24px', textAlign: 'center' }}>
         <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '24px' }}>
           Trusted by leading companies for campus placements
         </p>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '48px', flexWrap: 'wrap', opacity: 0.8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '48px', flexWrap: 'wrap', opacity: 0.85 }}>
           {logos.map((l, i) => (
             <img key={i} src={l.logo} alt={l.name} style={{ height: '26px', objectFit: 'contain' }} />
           ))}

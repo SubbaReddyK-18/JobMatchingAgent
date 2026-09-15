@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Sparkles, GraduationCap, Building2, Shield, ArrowRight, Eye, EyeOff, Lock, User, Info, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-export default function LoginPage({ onLoginSuccess, onBackToLanding }) {
+export default function LoginPage({ initialRole = 'STUDENT', onLoginSuccess, onBackToLanding }) {
   const { login } = useAuth();
-  const [selectedRole, setSelectedRole] = useState('STUDENT');
+  const [selectedRole, setSelectedRole] = useState(initialRole || 'STUDENT');
   const [identifier, setIdentifier] = useState('1RV23CS184');
   const [password, setPassword] = useState('Student@123');
   const [showPassword, setShowPassword] = useState(false);
@@ -25,6 +25,12 @@ export default function LoginPage({ onLoginSuccess, onBackToLanding }) {
       setPassword('HOD@123');
     }
   };
+
+  useEffect(() => {
+    if (initialRole) {
+      handleRoleTab(initialRole);
+    }
+  }, [initialRole]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

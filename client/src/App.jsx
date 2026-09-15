@@ -6,10 +6,12 @@ import SantraAIChat from './components/SantraAIChat';
 
 // Public Pages
 import LandingPage from './pages/LandingPage';
+import PortalsPage from './pages/PortalsPage';
 import LoginPage from './pages/LoginPage';
 
 // Student Portal Pages
 import StudentDashboard from './pages/StudentDashboard';
+import StudentOpportunities from './pages/StudentOpportunities';
 import StudentMatches from './pages/StudentMatches';
 import OpportunityDetails from './pages/OpportunityDetails';
 import PreparationCenter from './pages/PreparationCenter';
@@ -33,20 +35,32 @@ import AgentOpsLogs from './pages/AgentOpsLogs';
 function MainApp() {
   const { user, isAuthenticated, loading, isStudent, isTP, isHOD } = useAuth();
   
-  // Navigation state
+  // Navigation & Layout state
   const [currentView, setCurrentView] = useState('landing');
+  const [loginRole, setLoginRole] = useState('STUDENT');
   const [selectedJobId, setSelectedJobId] = useState(1);
   const [rankingJobId, setRankingJobId] = useState(1);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('jobmatch_sidebar_collapsed') === 'true';
+  });
+
+  const toggleSidebar = () => {
+    setIsSidebarCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('jobmatch_sidebar_collapsed', String(next));
+      return next;
+    });
+  };
 
   // Sync default view when auth state changes
   useEffect(() => {
     if (isAuthenticated) {
-      if (currentView === 'landing' || currentView === 'login') {
+      if (currentView === 'landing' || currentView === 'portals' || currentView === 'login') {
         if (isStudent) setCurrentView('student-dashboard');
         else setCurrentView('tp-dashboard');
       }
     } else {
-      if (currentView !== 'login' && currentView !== 'landing') {
+      if (currentView !== 'login' && currentView !== 'landing' && currentView !== 'portals') {
         setCurrentView('landing');
       }
     }
@@ -64,29 +78,42 @@ function MainApp() {
   if (!isAuthenticated) {
     if (currentView === 'login') {
       return (
-        <>
-          <LoginPage 
-            onLoginSuccess={(targetView) => {
-              if (targetView) setCurrentView(targetView);
-              else if (user?.role === 'STUDENT') setCurrentView('student-dashboard');
-              else setCurrentView('tp-dashboard');
-            }}
-            onBackToLanding={() => setCurrentView('landing')}
-          />
-          <SantraAIChat />
-        </>
+        <LoginPage 
+          initialRole={loginRole}
+          onLoginSuccess={(targetView) => {
+            if (targetView) setCurrentView(targetView);
+            else if (user?.role === 'STUDENT') setCurrentView('student-dashboard');
+            else setCurrentView('tp-dashboard');
+          }}
+          onBackToLanding={() => setCurrentView('portals')}
+        />
       );
     }
-    return (
-      <>
-        <LandingPage 
-          onOpenLogin={() => setCurrentView('login')}
+
+    if (currentView === 'portals') {
+      return (
+        <PortalsPage 
           onSelectPortal={(portalRole) => {
+            setLoginRole(portalRole || 'STUDENT');
             setCurrentView('login');
           }}
+          onBackToLanding={() => setCurrentView('landing')}
         />
-        <SantraAIChat />
-      </>
+      );
+    }
+
+    return (
+      <LandingPage 
+        onGetStarted={() => setCurrentView('portals')}
+        onOpenLogin={(role) => {
+          setLoginRole(role || 'STUDENT');
+          setCurrentView('login');
+        }}
+        onSelectPortal={(portalRole) => {
+          if (portalRole) setLoginRole(portalRole);
+          setCurrentView('portals');
+        }}
+      />
     );
   }
 
@@ -109,22 +136,25 @@ function MainApp() {
       switch (currentView) {
         case 'student-dashboard':
           return <StudentDashboard onNavigate={setCurrentView} onViewJob={handleViewJob} />;
+        case 'student-opportunities':
+          return <StudentOpportunities onViewJob={handleViewJob} onPrepareRole={() => setCurrentView('preparation-center')} />;
         case 'student-matches':
           return <StudentMatches onViewJob={handleViewJob} />;
         case 'opportunity-details':
           return (
             <OpportunityDetails 
               jobId={selectedJobId} 
-              onBack={() => setCurrentView('student-matches')} 
-              onViewPrep={() => setCurrentView('preparation-center')}
+              onBack={() => setCurrentView('student-opportunities')} 
+              onNavigate={setCurrentView}
+              onPrepareRole={() => setCurrentView('preparation-center')}
             />
           );
         case 'preparation-center':
-          return <PreparationCenter />;
+          return <PreparationCenter onNavigate={setCurrentView} />;
         case 'student-applications':
-          return <StudentApplications />;
+          return <StudentApplications onNavigate={setCurrentView} onPrepareRole={() => setCurrentView('preparation-center')} />;
         case 'student-profile':
-          return <StudentProfile />;
+          return <StudentProfile onNavigate={setCurrentView} />;
         default:
           return <StudentDashboard onNavigate={setCurrentView} onViewJob={handleViewJob} />;
       }
@@ -189,11 +219,13 @@ function MainApp() {
 
   // 3. Unified Layout Shell (Zero top whitespace, non-overlapping sidebar)
   return (
-    <div className="app-container">
+    <div className={`app-container ${isSidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
       {/* Role-Specific Sidebar */}
       <Sidebar 
         currentView={currentView} 
         onNavigate={setCurrentView} 
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={toggleSidebar}
       />
 
       {/* Main Content Viewport */}

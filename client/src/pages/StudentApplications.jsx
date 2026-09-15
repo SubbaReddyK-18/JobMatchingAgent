@@ -12,16 +12,20 @@ import {
   Award,
   BookOpen,
   ArrowRight,
-  Check
+  Sparkles,
+  DollarSign,
+  AlertCircle,
+  Check,
+  Building2
 } from 'lucide-react';
 import DonutChart from '../components/DonutChart';
 import StageProgressBar from '../components/StageProgressBar';
 
-export default function StudentApplications({ onNavigate, onOpenInterview }) {
+export default function StudentApplications({ onNavigate, onPrepareRole }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('all');
-  const [selectedInterviewApp, setSelectedInterviewApp] = useState(null);
+  const [selectedApp, setSelectedApp] = useState(null);
 
   useEffect(() => {
     async function loadApps() {
@@ -62,6 +66,70 @@ export default function StudentApplications({ onNavigate, onOpenInterview }) {
     if (activeTab === 'not_selected') return app.status === 'NOT_SELECTED';
     return true;
   });
+
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'OFFER_RECEIVED':
+        return <span className="badge badge-green" style={{ fontSize: '0.75rem', padding: '4px 10px' }}>Offer Received</span>;
+      case 'INTERVIEW_SCHEDULED':
+        return <span className="badge badge-purple" style={{ fontSize: '0.75rem', padding: '4px 10px' }}>Interview Scheduled</span>;
+      case 'UNDER_REVIEW':
+      case 'APPLIED':
+        return <span className="badge badge-blue" style={{ fontSize: '0.75rem', padding: '4px 10px' }}>Under Review</span>;
+      case 'NOT_SELECTED':
+        return <span className="badge badge-red" style={{ fontSize: '0.75rem', padding: '4px 10px' }}>Not Selected</span>;
+      default:
+        return <span className="badge badge-gray" style={{ fontSize: '0.75rem', padding: '4px 10px' }}>{status}</span>;
+    }
+  };
+
+  const getTimelineSteps = (app) => {
+    const status = app.status;
+    const isOffer = status === 'OFFER_RECEIVED';
+    const isInterview = status === 'INTERVIEW_SCHEDULED';
+    const isRejected = status === 'NOT_SELECTED';
+    const isUnderReview = status === 'UNDER_REVIEW' || status === 'APPLIED';
+
+    return [
+      {
+        title: 'Application Submitted',
+        desc: `Applied via JobMatch AI on ${app.applied_at ? app.applied_at.split(' ')[0] : '12 Aug 2026'}`,
+        state: 'completed'
+      },
+      {
+        title: 'Eligibility & Resume Screening',
+        desc: 'Agent 50 verified GPA, academic criteria, and core skill match.',
+        state: isUnderReview ? 'current' : 'completed'
+      },
+      {
+        title: 'Shortlisting & Profile Review',
+        desc: isRejected 
+          ? 'Recruiter review concluded for this drive.' 
+          : 'Candidate profile forwarded to technical hiring team.',
+        state: isRejected ? 'rejected' : isInterview || isOffer ? 'completed' : 'pending'
+      },
+      {
+        title: 'Technical & Behavioral Interviews',
+        desc: isInterview 
+          ? (app.round_name || 'Technical Round 1 scheduled')
+          : isOffer 
+            ? 'All interview evaluation rounds cleared with high rating.'
+            : isRejected
+              ? 'Interview process concluded.'
+              : 'Pending completion of screening rounds.',
+        state: isInterview ? 'current' : isOffer ? 'completed' : isRejected ? 'rejected' : 'pending'
+      },
+      {
+        title: 'Final Placement Decision & Offer',
+        desc: isOffer 
+          ? `Formal Offer Letter issued: ${app.offered_ctc || app.ctc_display || '₹24 LPA'}`
+          : isRejected 
+            ? 'Application not selected for final offer.'
+            : 'Final status will be announced post-interview round.',
+        state: isOffer ? 'completed' : isRejected ? 'rejected' : 'pending'
+      }
+    ];
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -185,7 +253,6 @@ export default function StudentApplications({ onNavigate, onOpenInterview }) {
             {filteredApps.map((app) => {
               const isInterview = app.status === 'INTERVIEW_SCHEDULED';
               const isOffer = app.status === 'OFFER_RECEIVED';
-              const isRejected = app.status === 'NOT_SELECTED';
 
               return (
                 <div
@@ -197,8 +264,11 @@ export default function StudentApplications({ onNavigate, onOpenInterview }) {
                     alignItems: 'center',
                     justifyContent: 'space-between',
                     gap: '20px',
-                    border: isInterview ? '1.5px solid #C7D2FE' : isOffer ? '1.5px solid #A7F3D0' : '1px solid #E2E8F0'
+                    border: isInterview ? '1.5px solid #C7D2FE' : isOffer ? '1.5px solid #A7F3D0' : '1px solid #E2E8F0',
+                    cursor: 'pointer',
+                    transition: 'transform 0.15s ease, box-shadow 0.15s ease'
                   }}
+                  onClick={() => setSelectedApp(app)}
                 >
                   {/* Left: Logo & Job details */}
                   <div style={{ display: 'flex', gap: '16px', alignItems: 'center', minWidth: '220px' }}>
@@ -238,15 +308,15 @@ export default function StudentApplications({ onNavigate, onOpenInterview }) {
                   </div>
 
                   {/* Right: Date & Details action */}
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', minWidth: '130px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', minWidth: '140px' }}>
                     <div style={{ fontSize: '0.6875rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <Calendar size={12} />
-                      <span>Applied on {app.applied_at ? app.applied_at.split(' ')[0] : '12 Aug 2026'}</span>
+                      <span>Applied {app.applied_at ? app.applied_at.split(' ')[0] : '12 Aug 2026'}</span>
                     </div>
 
                     {isInterview ? (
                       <button
-                        onClick={() => setSelectedInterviewApp(app)}
+                        onClick={(e) => { e.stopPropagation(); setSelectedApp(app); }}
                         className="btn btn-primary btn-sm"
                       >
                         <Video size={13} />
@@ -254,6 +324,7 @@ export default function StudentApplications({ onNavigate, onOpenInterview }) {
                       </button>
                     ) : (
                       <button
+                        onClick={(e) => { e.stopPropagation(); setSelectedApp(app); }}
                         className="btn btn-outline btn-sm"
                         style={{ fontSize: '0.75rem' }}
                       >
@@ -281,10 +352,10 @@ export default function StudentApplications({ onNavigate, onOpenInterview }) {
                 totalLabel="Applications"
                 showLegend={true}
                 data={[
-                  { label: 'Offer Received', count: 1, color: '#10B981' },
-                  { label: 'Under Review', count: 2, color: '#3B82F6' },
-                  { label: 'Interviews', count: 2, color: '#8B5CF6' },
-                  { label: 'Not Selected', count: 1, color: '#EF4444' }
+                  { label: 'Offer Received', count: counts.offers, color: '#10B981' },
+                  { label: 'Under Review', count: counts.under_review, color: '#3B82F6' },
+                  { label: 'Interviews', count: counts.interviews, color: '#8B5CF6' },
+                  { label: 'Not Selected', count: counts.not_selected, color: '#EF4444' }
                 ]}
               />
             </div>
@@ -292,110 +363,220 @@ export default function StudentApplications({ onNavigate, onOpenInterview }) {
 
           {/* Application Timeline */}
           <div className="card" style={{ padding: '20px' }}>
-            <h4 style={{ fontSize: '0.9375rem', fontWeight: 800, marginBottom: '14px' }}>Application Timeline</h4>
+            <h4 style={{ fontSize: '0.9375rem', fontWeight: 800, marginBottom: '14px' }}>Recent Activity Timeline</h4>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78125rem' }}>
-                <div>
-                  <div style={{ fontWeight: 700, color: '#0F172A' }}>Applied to Amazon</div>
-                  <div style={{ fontSize: '0.6875rem', color: '#64748B' }}>28 Jul 2026</div>
+              {apps.slice(0, 4).map((app, idx) => (
+                <div 
+                  key={idx} 
+                  onClick={() => setSelectedApp(app)}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78125rem', cursor: 'pointer', padding: '4px 0' }}
+                >
+                  <div>
+                    <div style={{ fontWeight: 700, color: '#0F172A' }}>{app.company_name} - {app.job_title}</div>
+                    <div style={{ fontSize: '0.6875rem', color: '#64748B' }}>{app.applied_at ? app.applied_at.split(' ')[0] : 'Recent'}</div>
+                  </div>
+                  {getStatusBadge(app.status)}
                 </div>
-                <span className="badge badge-green">Offer</span>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78125rem' }}>
-                <div>
-                  <div style={{ fontWeight: 700, color: '#0F172A' }}>Applied to Google</div>
-                  <div style={{ fontSize: '0.6875rem', color: '#64748B' }}>12 Aug 2026</div>
-                </div>
-                <span className="badge badge-purple">Interview</span>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78125rem' }}>
-                <div>
-                  <div style={{ fontWeight: 700, color: '#0F172A' }}>Applied to Infosys</div>
-                  <div style={{ fontSize: '0.6875rem', color: '#64748B' }}>20 Aug 2026</div>
-                </div>
-                <span className="badge badge-red">Not Selected</span>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78125rem' }}>
-                <div>
-                  <div style={{ fontWeight: 700, color: '#0F172A' }}>Applied to Microsoft</div>
-                  <div style={{ fontSize: '0.6875rem', color: '#64748B' }}>5 Sep 2026</div>
-                </div>
-                <span className="badge badge-blue">Under Review</span>
-              </div>
+              ))}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Modal for Interview Details & Prep (Page 8) */}
-      {selectedInterviewApp && (
-        <div className="modal-overlay" onClick={() => setSelectedInterviewApp(null)}>
-          <div className="modal-content" style={{ maxWidth: '640px' }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #F1F5F9', paddingBottom: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <img src={selectedInterviewApp.company_logo} alt="" style={{ height: '24px' }} />
-                <h3 style={{ fontSize: '1.125rem', fontWeight: 800 }}>{selectedInterviewApp.job_title} Interview</h3>
+      {/* Comprehensive "View Status" / Application Details Modal */}
+      {selectedApp && (
+        <div className="modal-overlay" onClick={() => setSelectedApp(null)}>
+          <div 
+            className="modal-content" 
+            style={{ maxWidth: '680px', maxHeight: '90vh', overflowY: 'auto', borderRadius: '24px', padding: '28px' }} 
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', borderBottom: '1px solid #F1F5F9', paddingBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{ width: '48px', height: '48px', borderRadius: '12px', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', padding: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <img src={selectedApp.company_logo} alt="" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', lineHeight: 1.2 }}>
+                    {selectedApp.job_title}
+                  </h3>
+                  <div style={{ fontSize: '0.8125rem', color: '#64748B', display: 'flex', alignItems: 'center', gap: '6px', marginTop: '3px' }}>
+                    <span style={{ fontWeight: 700, color: '#334155' }}>{selectedApp.company_name}</span>
+                    <span>•</span>
+                    <span>{selectedApp.job_location}</span>
+                    <span>•</span>
+                    <span style={{ color: '#059669', fontWeight: 700 }}>{selectedApp.ctc_display || '₹24 LPA'}</span>
+                  </div>
+                </div>
               </div>
+
               <button
-                onClick={() => setSelectedInterviewApp(null)}
-                style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#64748B' }}
+                onClick={() => setSelectedApp(null)}
+                style={{
+                  background: '#F1F5F9',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  color: '#64748B',
+                  fontWeight: 800
+                }}
               >
                 ✕
               </button>
             </div>
 
-            {/* Scheduled card */}
-            <div style={{ backgroundColor: '#EEF2FF', border: '1px solid #C7D2FE', borderRadius: '12px', padding: '16px', marginBottom: '18px' }}>
-              <div style={{ fontSize: '0.875rem', fontWeight: 800, color: '#1E1B4B' }}>Technical Round 1 (Systems & DSA)</div>
-              <div style={{ fontSize: '0.78125rem', color: '#4338CA', marginTop: '4px', display: 'flex', gap: '16px' }}>
-                <span>📅 15 Sep 2026, 10:00 AM IST</span>
-                <span>📹 Google Meet (Virtual)</span>
+            {/* Current Stage Highlight Box */}
+            <div style={{
+              padding: '16px 20px',
+              borderRadius: '16px',
+              backgroundColor: selectedApp.status === 'OFFER_RECEIVED' ? '#ECFDF5' : selectedApp.status === 'INTERVIEW_SCHEDULED' ? '#EEF2FF' : selectedApp.status === 'NOT_SELECTED' ? '#FEF2F2' : '#F8FAFC',
+              border: selectedApp.status === 'OFFER_RECEIVED' ? '1.5px solid #86EFAC' : selectedApp.status === 'INTERVIEW_SCHEDULED' ? '1.5px solid #C7D2FE' : selectedApp.status === 'NOT_SELECTED' ? '1.5px solid #FECACA' : '1.5px solid #E2E8F0',
+              marginBottom: '24px'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Current Application Status
+                </div>
+                {getStatusBadge(selectedApp.status)}
               </div>
-              <a
-                href={selectedInterviewApp.meeting_link || 'https://meet.google.com/rvc-job-match'}
-                target="_blank"
-                rel="noreferrer"
-                className="btn btn-primary btn-sm"
-                style={{ marginTop: '12px', display: 'inline-flex' }}
-              >
-                <Video size={14} />
-                <span>Join Google Meet</span>
-              </a>
-            </div>
 
-            {/* Preparation Checklist */}
-            <div style={{ marginBottom: '18px' }}>
-              <h4 style={{ fontSize: '0.875rem', fontWeight: 800, marginBottom: '8px' }}>Preparation Checklist (4/6 Completed)</h4>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.78125rem' }}>
-                {[
-                  { task: 'Revise Data Structures & Algorithms', done: true },
-                  { task: 'Practice system design basics & caching bottlenecks', done: true },
-                  { task: "Go through Google's engineering core principles", done: true },
-                  { task: 'Solve mock interview questions with timer', done: true },
-                  { task: 'Prepare for behavioral questions (STAR method)', done: false },
-                  { task: 'Test technical setup (internet, camera, mic)', done: false }
-                ].map((item, i) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '8px', color: item.done ? '#10B981' : '#64748B' }}>
-                    <CheckCircle2 size={14} color={item.done ? '#10B981' : '#CBD5E1'} />
-                    <span style={{ textDecoration: item.done ? 'line-through' : 'none' }}>{item.task}</span>
+              {selectedApp.status === 'OFFER_RECEIVED' && (
+                <div>
+                  <div style={{ fontSize: '1.125rem', fontWeight: 800, color: '#065F46', marginBottom: '4px' }}>
+                    🎉 Formal Offer Letter Issued!
                   </div>
-                ))}
+                  <div style={{ fontSize: '0.8125rem', color: '#047857', lineHeight: 1.4 }}>
+                    Congratulations! {selectedApp.company_name} has finalized your selection for the {selectedApp.job_title} role with an annual CTC of <strong>{selectedApp.offered_ctc || selectedApp.ctc_display || '₹28 LPA'}</strong>.
+                  </div>
+                </div>
+              )}
+
+              {selectedApp.status === 'INTERVIEW_SCHEDULED' && (
+                <div>
+                  <div style={{ fontSize: '1.0625rem', fontWeight: 800, color: '#1E1B4B', marginBottom: '6px' }}>
+                    {selectedApp.round_name || 'Technical Round 1 (DSA & Architecture)'}
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px', fontSize: '0.78125rem', color: '#4338CA', flexWrap: 'wrap', marginBottom: '12px' }}>
+                    <span>📅 {selectedApp.scheduled_time || '15 Sep 2026, 10:00 AM IST'}</span>
+                    <span>📹 {selectedApp.interview_mode || 'Google Meet (Virtual)'}</span>
+                  </div>
+                  <a
+                    href={selectedApp.meeting_link || 'https://meet.google.com/rvc-job-match'}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn btn-primary btn-sm"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                  >
+                    <Video size={14} />
+                    <span>Join Scheduled Meet</span>
+                  </a>
+                </div>
+              )}
+
+              {(selectedApp.status === 'UNDER_REVIEW' || selectedApp.status === 'APPLIED') && (
+                <div>
+                  <div style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#0F172A', marginBottom: '4px' }}>
+                    Profile Screening in Progress
+                  </div>
+                  <div style={{ fontSize: '0.8125rem', color: '#64748B', lineHeight: 1.4 }}>
+                    Your resume and verified Agent 50 assessment have been submitted to the placement drive coordinator. Estimated feedback window: 3–5 business days.
+                  </div>
+                </div>
+              )}
+
+              {selectedApp.status === 'NOT_SELECTED' && (
+                <div>
+                  <div style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#991B1B', marginBottom: '4px' }}>
+                    Application Cycle Concluded
+                  </div>
+                  <div style={{ fontSize: '0.8125rem', color: '#7F1D1D', lineHeight: 1.4 }}>
+                    The hiring quota for this drive has closed. Agent 50 recommends reviewing the skill gaps identified for {selectedApp.job_title} to prepare for upcoming campus drives.
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Step Timeline */}
+            <div style={{ marginBottom: '24px' }}>
+              <h4 style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#0F172A', marginBottom: '14px' }}>
+                Application Stage Timeline
+              </h4>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', position: 'relative', paddingLeft: '8px' }}>
+                {getTimelineSteps(selectedApp).map((step, sIdx) => {
+                  const isDone = step.state === 'completed';
+                  const isCur = step.state === 'current';
+                  const isRej = step.state === 'rejected';
+
+                  return (
+                    <div key={sIdx} style={{ display: 'flex', gap: '14px', alignItems: 'flex-start', position: 'relative' }}>
+                      {/* Step Marker */}
+                      <div style={{
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '50%',
+                        backgroundColor: isDone ? '#10B981' : isCur ? '#4F46E5' : isRej ? '#EF4444' : '#E2E8F0',
+                        color: isDone || isCur || isRej ? '#FFFFFF' : '#94A3B8',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.75rem',
+                        fontWeight: 800,
+                        flexShrink: 0,
+                        marginTop: '2px',
+                        boxShadow: isCur ? '0 0 0 4px rgba(79, 70, 229, 0.2)' : 'none'
+                      }}>
+                        {isDone ? <Check size={14} /> : isRej ? <XCircle size={14} /> : sIdx + 1}
+                      </div>
+
+                      {/* Step Text */}
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.84375rem', fontWeight: 700, color: isCur ? '#4F46E5' : isRej ? '#991B1B' : '#0F172A' }}>
+                          {step.title}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '2px', lineHeight: 1.4 }}>
+                          {step.desc}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Suggested Practice Questions */}
-            <div>
-              <h4 style={{ fontSize: '0.875rem', fontWeight: 800, marginBottom: '8px' }}>Suggested Practice Questions</h4>
-              <ol style={{ paddingLeft: '20px', fontSize: '0.78125rem', color: '#334155', lineHeight: 1.6 }}>
-                <li>Given an array, find the longest subarray with sum K.</li>
-                <li>Design a data structure to support LRU cache in O(1) time complexity.</li>
-                <li>Given a binary tree, find the lowest common ancestor of two nodes.</li>
-                <li>Implement a function to detect and remove a cycle in a linked list.</li>
-              </ol>
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', borderTop: '1px solid #F1F5F9', paddingTop: '18px' }}>
+              {onPrepareRole && (
+                <button
+                  onClick={() => {
+                    const targetJob = {
+                      id: selectedApp.job_opening_id,
+                      title: selectedApp.job_title,
+                      company_name: selectedApp.company_name
+                    };
+                    setSelectedApp(null);
+                    onPrepareRole(targetJob);
+                  }}
+                  className="btn btn-primary"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <BookOpen size={16} />
+                  <span>Prepare for this Role</span>
+                </button>
+              )}
+              <button
+                onClick={() => setSelectedApp(null)}
+                className="btn btn-outline"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

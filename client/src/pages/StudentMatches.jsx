@@ -17,7 +17,9 @@ import RadialGauge from '../components/RadialGauge';
 import DonutChart from '../components/DonutChart';
 import confetti from 'canvas-confetti';
 
-export default function StudentMatches({ onSelectJob, onNavigate }) {
+export default function StudentMatches({ onSelectJob, onViewJob, onNavigate }) {
+  const selectJob = onSelectJob || onViewJob;
+  const navigateTo = onNavigate || (() => {});
   const [activeTab, setActiveTab] = useState('recommended'); // 'recommended', 'all_eligible', 'closing_soon'
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -267,7 +269,7 @@ export default function StudentMatches({ onSelectJob, onNavigate }) {
 
                     <div style={{ flex: 1 }}>
                       <h3
-                        onClick={() => onSelectJob(job.id)}
+                        onClick={() => selectJob && selectJob(job.id)}
                         style={{ fontSize: '1.0625rem', fontWeight: 800, color: '#0F172A', cursor: 'pointer', display: 'inline-block' }}
                       >
                         {job.title}
@@ -329,7 +331,7 @@ export default function StudentMatches({ onSelectJob, onNavigate }) {
                   {/* Right: Actions */}
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: '110px' }}>
                     <button
-                      onClick={() => onSelectJob(job.id)}
+                      onClick={() => selectJob && selectJob(job.id)}
                       className="btn btn-outline btn-sm"
                       style={{ width: '100%' }}
                     >
@@ -376,7 +378,7 @@ export default function StudentMatches({ onSelectJob, onNavigate }) {
             </div>
 
             <button
-              onClick={() => onNavigate('student-preparation')}
+              onClick={() => navigateTo('preparation-center')}
               className="btn btn-primary btn-sm"
               style={{ borderRadius: '999px' }}
             >
