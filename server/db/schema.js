@@ -148,8 +148,11 @@ CREATE TABLE IF NOT EXISTS placement_drive_applications (
     id TEXT PRIMARY KEY,
     student_id TEXT NOT NULL,
     job_opening_id TEXT NOT NULL,
-    status TEXT DEFAULT 'APPLIED', -- APPLIED, UNDER_REVIEW, SHORTLISTED, INTERVIEW_SCHEDULED, OFFER_RECEIVED, NOT_SELECTED, WITHDRAWN
+    status TEXT DEFAULT 'APPLIED', -- APPLIED, UNDER_REVIEW, SHORTLISTED, INTERVIEW_SCHEDULED, SELECTED, OFFER_RECEIVED, NOT_SELECTED, WITHDRAWN
+    current_stage TEXT DEFAULT 'APPLIED', -- APPLIED, SCREENING, SHORTLISTED, CODING, TECHNICAL_1, TECHNICAL_2, HR, SELECTED, OFFER, REJECTED, WITHDRAWN
     stage_progress INTEGER DEFAULT 1, -- 1: Applied, 2: Shortlisted, 3: Interview, 4: Offer
+    stage_history TEXT, -- JSON array of [{ stage, timestamp, notes, status, round_title }]
+    rounds_config TEXT, -- JSON array of configured stages for the drive
     applied_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     notes TEXT,
@@ -193,6 +196,47 @@ CREATE TABLE IF NOT EXISTS placement_historical_signals (
     top_contributing_branch TEXT DEFAULT 'CSE',
     interview_conversion_rate REAL DEFAULT 0.78,
     sample_size INTEGER DEFAULT 45
+);
+
+-- Learning & Skills Modules
+CREATE TABLE IF NOT EXISTS learning_modules (
+    id TEXT PRIMARY KEY,
+    title TEXT NOT NULL,
+    category TEXT NOT NULL, -- Programming, Cloud, AI/ML, System Design, Aptitude, Core
+    level TEXT DEFAULT 'Intermediate', -- Beginner, Intermediate, Advanced
+    duration_hours INTEGER DEFAULT 20,
+    target_skills TEXT NOT NULL, -- JSON array of skills
+    description TEXT,
+    enrolled_count INTEGER DEFAULT 0,
+    completion_rate REAL DEFAULT 0.0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS learning_enrollments (
+    id TEXT PRIMARY KEY,
+    student_id TEXT NOT NULL,
+    module_id TEXT NOT NULL,
+    status TEXT DEFAULT 'IN_PROGRESS', -- ENROLLED, IN_PROGRESS, COMPLETED
+    progress_pct INTEGER DEFAULT 0,
+    assigned_by TEXT DEFAULT 'SELF', -- SELF, TP_CELL
+    enrolled_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    completed_at DATETIME,
+    FOREIGN KEY (student_id) REFERENCES people_students(id),
+    FOREIGN KEY (module_id) REFERENCES learning_modules(id),
+    UNIQUE(student_id, module_id)
+);
+
+-- Notifications
+CREATE TABLE IF NOT EXISTS system_notifications (
+    id TEXT PRIMARY KEY,
+    user_id TEXT, -- NULL for role broadcast
+    role_target TEXT, -- 'STUDENT', 'T_AND_P', 'HOD', 'ALL'
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    type TEXT DEFAULT 'INFO', -- DRIVE, INTERVIEW, READINESS, SYSTEM
+    is_read BOOLEAN DEFAULT 0,
+    link_view TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
 -- AgentOps Schema (Model governance, execution provenance, run logs)
@@ -260,16 +304,5 @@ CREATE TABLE IF NOT EXISTS institution_events (
     organizer TEXT NOT NULL,
     registered_count INTEGER DEFAULT 0,
     mode TEXT DEFAULT 'Offline'
-);
-
-CREATE TABLE IF NOT EXISTS institution_communications (
-    id TEXT PRIMARY KEY,
-    sender_id TEXT NOT NULL,
-    sender_name TEXT NOT NULL,
-    recipient_type TEXT NOT NULL, -- 'STUDENT', 'COMPANY', 'BROADCAST'
-    recipient_id TEXT,
-    subject TEXT,
-    message TEXT NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 `;

@@ -29,17 +29,16 @@ router.get('/my-applications', authenticateToken, async (req, res) => {
             ORDER BY a.applied_at DESC
         `, [studentId]);
 
-        // Status counts
         let underReviewCount = 0;
         let interviewCount = 0;
         let offerCount = 0;
         let notSelectedCount = 0;
 
         for (const app of applications) {
-            if (app.status === 'UNDER_REVIEW' || app.status === 'APPLIED') underReviewCount++;
+            if (app.status === 'UNDER_REVIEW' || app.status === 'APPLIED' || app.status === 'SHORTLISTED') underReviewCount++;
             else if (app.status === 'INTERVIEW_SCHEDULED') interviewCount++;
-            else if (app.status === 'OFFER_RECEIVED') offerCount++;
-            else if (app.status === 'NOT_SELECTED') notSelectedCount++;
+            else if (app.status === 'OFFER_RECEIVED' || app.status === 'SELECTED') offerCount++;
+            else if (app.status === 'NOT_SELECTED' || app.status === 'REJECTED') notSelectedCount++;
         }
 
         res.json({
@@ -65,7 +64,32 @@ router.get('/my-applications', authenticateToken, async (req, res) => {
     }
 });
 
-// Apply to a job opening
+// Get all applications for T&P / HOD
+router.get('/all', authenticateToken, async (req, res) => {
+    try {
+        const applications = await db.query(`
+            SELECT a.*, s.full_name as student_name, s.usn as student_usn, s.branch as student_branch, s.cgpa as student_cgpa,
+                   j.title as job_title, j.location as job_location, j.ctc_display,
+                   c.name as company_name, c.tier as company_tier,
+                   i.round_name, i.scheduled_time, i.mode as interview_mode, i.status as interview_status,
+                   o.offered_ctc, o.student_decision
+            FROM placement_drive_applications a
+            JOIN people_students s ON a.student_id = s.id
+            JOIN placement_job_openings j ON a.job_opening_id = j.id
+            JOIN placement_companies c ON j.company_id = c.id
+            LEFT JOIN placement_interviews i ON a.id = i.application_id
+            LEFT JOIN placement_offers o ON a.id = o.application_id
+            ORDER BY a.applied_at DESC
+        `);
+
+        res.json({ applications });
+    } catch (err) {
+        console.error('Error fetching all applications:', err);
+        res.status(500).json({ error: 'Server error fetching all applications' });
+    }
+});
+
+// Apply to a job opening (Student)
 router.post('/apply', authenticateToken, async (req, res) => {
     try {
         const { job_opening_id, student_id } = req.body;
@@ -84,10 +108,26 @@ router.post('/apply', authenticateToken, async (req, res) => {
         }
 
         const appId = 'app_' + crypto.randomBytes(6).toString('hex');
+        const stageHistory = [
+            { stage: 'APPLIED', title: 'Application Submitted', timestamp: new Date().toISOString(), status: 'COMPLETED', notes: 'Application recorded via JobMatch AI portal.' },
+            { stage: 'SCREENING', title: 'Eligibility & Resume Screening', timestamp: new Date().toISOString(), status: 'IN_PROGRESS', notes: 'Profile queued for recruiter evaluation.' }
+        ];
+
+        const roundsConfig = [
+            { id: 'APPLIED', label: 'Application Submitted' },
+            { id: 'SCREENING', label: 'Eligibility Screening' },
+            { id: 'SHORTLISTED', label: 'Profile Shortlist' },
+            { id: 'CODING', label: 'Coding Assessment' },
+            { id: 'TECHNICAL_1', label: 'Technical Round 1' },
+            { id: 'TECHNICAL_2', label: 'Technical Round 2' },
+            { id: 'HR', label: 'HR Interview' },
+            { id: 'OFFER', label: 'Offer Received' }
+        ];
+
         await db.run(`
-            INSERT INTO placement_drive_applications (id, student_id, job_opening_id, status, stage_progress, applied_at)
-            VALUES (?, ?, ?, 'UNDER_REVIEW', 1, CURRENT_TIMESTAMP)
-        `, [appId, targetStudentId, job_opening_id]);
+            INSERT INTO placement_drive_applications (id, student_id, job_opening_id, status, current_stage, stage_progress, stage_history, rounds_config, applied_at, notes)
+            VALUES (?, ?, ?, 'UNDER_REVIEW', 'APPLIED', 1, ?, ?, CURRENT_TIMESTAMP, 'Application submitted successfully.')
+        `, [appId, targetStudentId, job_opening_id, JSON.stringify(stageHistory), JSON.stringify(roundsConfig)]);
 
         res.json({
             message: 'Application submitted successfully! Your profile has been sent to the recruiter.',
@@ -99,12 +139,133 @@ router.post('/apply', authenticateToken, async (req, res) => {
     }
 });
 
+// Update Placement Lifecycle Stage (T&P Authorized)
+router.put('/:id/stage', authenticateToken, requireRole(['T_AND_P']), denyHODMutation, async (req, res) => {
+    try {
+        const { stage, status, progress, notes, interview, offer } = req.body;
+        const appId = req.params.id;
+
+        const app = await db.get(`
+            SELECT a.*, s.user_id as student_user_id, s.full_name as student_name, j.title as job_title, c.name as company_name
+            FROM placement_drive_applications a
+            JOIN people_students s ON a.student_id = s.id
+            JOIN placement_job_openings j ON a.job_opening_id = j.id
+            JOIN placement_companies c ON j.company_id = c.id
+            WHERE a.id = ?
+        `, [appId]);
+
+        if (!app) {
+            return res.status(404).json({ error: 'Application record not found' });
+        }
+
+        let stageHistory = [];
+        try {
+            stageHistory = typeof app.stage_history === 'string' ? JSON.parse(app.stage_history) : (app.stage_history || []);
+        } catch {
+            stageHistory = [];
+        }
+
+        const newStageTitle = stage === 'SHORTLISTED' ? 'Shortlisting & Profile Review' :
+                              stage === 'CODING' ? 'Online Coding Assessment' :
+                              stage === 'TECHNICAL_1' ? 'Technical Interview 1' :
+                              stage === 'TECHNICAL_2' ? 'Technical Interview 2' :
+                              stage === 'HR' ? 'HR & Cultural Alignment Round' :
+                              stage === 'SELECTED' ? 'Final Selection Approved' :
+                              stage === 'OFFER' ? 'Official Offer Issued' :
+                              stage === 'REJECTED' ? 'Application Closed / Not Selected' :
+                              stage;
+
+        stageHistory.push({
+            stage,
+            title: newStageTitle,
+            timestamp: new Date().toISOString(),
+            status: status === 'NOT_SELECTED' || status === 'REJECTED' ? 'REJECTED' : 'COMPLETED',
+            notes: notes || `Candidate moved to ${newStageTitle} by T&P Cell.`
+        });
+
+        await db.run(`
+            UPDATE placement_drive_applications 
+            SET current_stage = ?, status = ?, stage_progress = ?, stage_history = ?, notes = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        `, [stage, status || 'UNDER_REVIEW', progress || 2, JSON.stringify(stageHistory), notes || '', appId]);
+
+        // If interview scheduled, insert or update placement_interviews
+        if (interview && interview.round_name) {
+            const intId = 'int_' + crypto.randomBytes(6).toString('hex');
+            await db.run(`
+                INSERT INTO placement_interviews (id, application_id, round_name, scheduled_time, mode, meeting_link, interviewer_name, status, feedback)
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'SCHEDULED', ?)
+            `, [intId, appId, interview.round_name, interview.scheduled_time || 'TBD', interview.mode || 'Google Meet', interview.meeting_link || '', interview.interviewer_name || 'T&P Panel', notes || '']);
+        }
+
+        // If offer issued, insert or update placement_offers
+        if (offer && offer.ctc) {
+            const offId = 'off_' + crypto.randomBytes(6).toString('hex');
+            await db.run(`
+                INSERT INTO placement_offers (id, application_id, offered_ctc, role_title, joining_date, student_decision)
+                VALUES (?, ?, ?, ?, ?, 'ACCEPTED')
+            `, [offId, appId, parseFloat(offer.ctc), app.job_title, offer.joining_date || '2027-07-01']);
+        }
+
+        // Notify Student
+        const notifId = 'notif_' + crypto.randomBytes(6).toString('hex');
+        await db.run(`
+            INSERT INTO system_notifications (id, user_id, role_target, title, message, type, is_read, link_view)
+            VALUES (?, ?, 'STUDENT', ?, ?, 'DRIVE', 0, 'student-applications')
+        `, [notifId, app.student_user_id, `Application Update: ${app.company_name}`, `Your application for ${app.job_title} has advanced to: ${newStageTitle}.`]);
+
+        res.json({
+            message: `Candidate application successfully advanced to ${newStageTitle}.`,
+            application_id: appId,
+            current_stage: stage,
+            status: status
+        });
+    } catch (err) {
+        console.error('Error updating application stage:', err);
+        res.status(500).json({ error: 'Failed to update candidate application stage' });
+    }
+});
+
+// Dynamic Application Status Timeline
+router.get('/timeline/:appId', authenticateToken, async (req, res) => {
+    try {
+        const app = await db.get(`
+            SELECT a.*, j.title as job_title, j.location as job_location, c.name as company_name, c.logo_url as company_logo,
+                   i.round_name, i.scheduled_time, i.mode, i.meeting_link, i.interviewer_name
+            FROM placement_drive_applications a
+            JOIN placement_job_openings j ON a.job_opening_id = j.id
+            JOIN placement_companies c ON j.company_id = c.id
+            LEFT JOIN placement_interviews i ON a.id = i.application_id
+            WHERE a.id = ?
+        `, [req.params.appId]);
+
+        if (!app) {
+            return res.status(404).json({ error: 'Application not found' });
+        }
+
+        let stageHistory = [];
+        try {
+            stageHistory = typeof app.stage_history === 'string' ? JSON.parse(app.stage_history) : (app.stage_history || []);
+        } catch {
+            stageHistory = [];
+        }
+
+        res.json({
+            application: app,
+            stage_history: stageHistory
+        });
+    } catch (err) {
+        console.error('Error fetching timeline:', err);
+        res.status(500).json({ error: 'Error fetching application timeline' });
+    }
+});
+
 // Detailed Interview Preparation & Schedule Info
 router.get('/interview-details/:appId', authenticateToken, async (req, res) => {
     try {
         const app = await db.get(`
             SELECT a.*, j.title as job_title, j.location as job_location, c.name as company_name, c.logo_url as company_logo,
-                   i.round_name, i.scheduled_time, i.mode, i.meeting_link, i.interviewer_name
+                   i.round_name, i.scheduled_time, i.mode, i.meeting_link, i.interviewer_name, i.feedback
             FROM placement_drive_applications a
             JOIN placement_job_openings j ON a.job_opening_id = j.id
             JOIN placement_companies c ON j.company_id = c.id
@@ -123,11 +284,12 @@ router.get('/interview-details/:appId', authenticateToken, async (req, res) => {
                 company_logo: app.company_logo,
                 role: app.job_title,
                 round_name: app.round_name || 'Technical Round 1',
-                scheduled_date: '10 Sep 2026',
-                scheduled_time: app.scheduled_time || '2:00 PM – 3:00 PM (IST)',
+                scheduled_date: '18 Sep 2026',
+                scheduled_time: app.scheduled_time || '10:00 AM – 11:30 AM (IST)',
                 mode: app.mode || 'Google Meet (Virtual)',
                 meeting_link: app.meeting_link || 'https://meet.google.com/rvc-job-match',
-                interviewer: app.interviewer_name || 'To be announced'
+                interviewer: app.interviewer_name || 'Senior Technical Evaluation Panel',
+                feedback: app.feedback || 'Review core system design, data structures, and multithreading.'
             },
             preparation_checklist: [
                 { task: 'Revise Data Structures & Algorithms', completed: true },
@@ -153,20 +315,6 @@ router.get('/interview-details/:appId', authenticateToken, async (req, res) => {
         });
     } catch (err) {
         res.status(500).json({ error: 'Error fetching interview details' });
-    }
-});
-
-// Update Application Status (T&P Only, HOD blocked)
-router.post('/update-status', authenticateToken, requireRole(['T_AND_P']), denyHODMutation, async (req, res) => {
-    try {
-        const { application_id, status, stage_progress } = req.body;
-        await db.run(
-            `UPDATE placement_drive_applications SET status = ?, stage_progress = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
-            [status, stage_progress || 2, application_id]
-        );
-        res.json({ message: 'Application status updated successfully' });
-    } catch (err) {
-        res.status(500).json({ error: 'Failed to update application status' });
     }
 });
 

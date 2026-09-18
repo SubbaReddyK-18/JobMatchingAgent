@@ -189,21 +189,42 @@ export default function LoginPage({ initialRole = 'STUDENT', onLoginSuccess, onB
           boxShadow: '0 20px 40px rgba(0,0,0,0.06)',
           padding: '36px'
         }}>
-          {/* Portal Header Badge */}
-          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+          {/* Back link & Portal Header Badge */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <button
+              type="button"
+              onClick={onBackToLanding}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#64748B',
+                fontSize: '0.78125rem',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '4px 8px',
+                borderRadius: '6px'
+              }}
+            >
+              ← Back to Portals
+            </button>
             <div style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '8px',
-              padding: '6px 14px',
+              gap: '6px',
+              padding: '4px 10px',
               borderRadius: '999px',
               backgroundColor: currentRole.accentBg,
-              border: '1px solid #E0E7FF',
-              marginBottom: '12px'
+              border: '1px solid #E0E7FF'
             }}>
-              <span style={{ backgroundColor: currentRole.color, color: 'white', fontWeight: 800, fontSize: '10px', padding: '2px 6px', borderRadius: '4px' }}>AI</span>
-              <span style={{ fontSize: '0.78125rem', fontWeight: 700, color: currentRole.color }}>{currentRole.portalTitle}</span>
+              <span style={{ backgroundColor: currentRole.color, color: 'white', fontWeight: 800, fontSize: '10px', padding: '1px 5px', borderRadius: '4px' }}>AI</span>
+              <span style={{ fontSize: '0.71875rem', fontWeight: 700, color: currentRole.color }}>{currentRole.portalTitle}</span>
             </div>
+          </div>
+
+          <div style={{ textAlign: 'center', marginBottom: '20px' }}>
             <h2 style={{ fontSize: '1.625rem', fontWeight: 800, color: '#0F172A' }}>Account Sign In</h2>
             <p style={{ fontSize: '0.8125rem', color: '#64748B', marginTop: '4px' }}>
               {currentRole.desc}

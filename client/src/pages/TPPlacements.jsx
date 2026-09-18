@@ -9,37 +9,152 @@ import {
   Download,
   Plus,
   Lock,
-  Eye
+  Eye,
+  Edit,
+  Clock,
+  Video,
+  CheckCircle2,
+  XCircle,
+  FileCheck2,
+  Sparkles,
+  Filter,
+  Search
 } from 'lucide-react';
 import DonutChart from '../components/DonutChart';
 import { useAuth } from '../context/AuthContext';
 
-export default function TPPlacements() {
+export default function TPPlacements({ onNavigate }) {
   const { user } = useAuth();
   const isHOD = user?.role === 'HOD';
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [applications, setApplications] = useState([]);
+  const [appsLoading, setAppsLoading] = useState(true);
+
+  // Filters for applications table
+  const [stageFilter, setStageFilter] = useState('All');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  // Manage Stage Modal
+  const [selectedApp, setSelectedApp] = useState(null);
+  const [stageForm, setStageForm] = useState({
+    stage: 'SHORTLISTED',
+    status: 'UNDER_REVIEW',
+    progress: 3,
+    notes: '',
+    interview_round: 'Technical Round 1',
+    interview_time: '20 Sep 2026, 10:00 AM IST',
+    interview_mode: 'Google Meet (Virtual)',
+    interview_link: 'https://meet.google.com/rvc-job-match',
+    offered_ctc: '24.0'
+  });
+  const [updating, setUpdating] = useState(false);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const token = localStorage.getItem('jobmatch_token');
+      const [plcRes, appsRes] = await Promise.all([
+        fetch('/api/institution/placements', { headers: token ? { 'Authorization': `Bearer ${token}` } : {} }),
+        fetch('/api/applications/all', { headers: token ? { 'Authorization': `Bearer ${token}` } : {} })
+      ]);
+
+      if (plcRes.ok) {
+        const plcData = await plcRes.json();
+        setData(plcData);
+      }
+      if (appsRes.ok) {
+        const aData = await appsRes.json();
+        setApplications(aData.applications || []);
+      }
+    } catch (err) {
+      console.error('Error fetching placement management data:', err);
+    } finally {
+      setLoading(false);
+      setAppsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function loadPlacements() {
-      try {
-        const token = localStorage.getItem('jobmatch_token');
-        const res = await fetch('/api/institution/placements', {
-          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-        });
-        if (res.ok) {
-          const resData = await res.json();
-          setData(resData);
-        }
-      } catch (err) {
-        console.error('Error fetching placements:', err);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadPlacements();
+    loadData();
   }, []);
+
+  const handleOpenStageModal = (app) => {
+    setSelectedApp(app);
+    setStageForm({
+      stage: app.current_stage || 'SHORTLISTED',
+      status: app.status || 'UNDER_REVIEW',
+      progress: app.stage_progress || 3,
+      notes: app.notes || '',
+      interview_round: app.round_name || 'Technical Round 1',
+      interview_time: app.scheduled_time || '22 Sep 2026, 10:00 AM IST',
+      interview_mode: app.interview_mode || 'Google Meet (Virtual)',
+      interview_link: 'https://meet.google.com/rvc-job-match',
+      offered_ctc: app.offered_ctc ? String(app.offered_ctc) : '24.0'
+    });
+  };
+
+  const handleUpdateStageSubmit = async (e) => {
+    e.preventDefault();
+    if (isHOD || !selectedApp) return;
+
+    setUpdating(true);
+    try {
+      const token = localStorage.getItem('jobmatch_token');
+      const payload = {
+        stage: stageForm.stage,
+        status: stageForm.status,
+        progress: stageForm.progress,
+        notes: stageForm.notes,
+        interview: ['TECHNICAL_1', 'TECHNICAL_2', 'HR'].includes(stageForm.stage) ? {
+          round_name: stageForm.interview_round,
+          scheduled_time: stageForm.interview_time,
+          mode: stageForm.interview_mode,
+          meeting_link: stageForm.interview_link
+        } : null,
+        offer: ['SELECTED', 'OFFER'].includes(stageForm.stage) ? {
+          ctc: parseFloat(stageForm.offered_ctc) || 24.0,
+          joining_date: '2027-07-01'
+        } : null
+      };
+
+      const res = await fetch(`/api/applications/${selectedApp.id}/stage`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        setSelectedApp(null);
+        await loadData();
+        alert('Candidate placement lifecycle stage successfully updated!');
+      } else {
+        alert('Failed to update candidate stage');
+      }
+    } catch (err) {
+      console.error('Error updating stage:', err);
+      alert('Error updating candidate stage');
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const filteredApps = applications.filter(app => {
+    if (stageFilter !== 'All' && app.current_stage !== stageFilter && app.status !== stageFilter) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const mName = app.student_name?.toLowerCase().includes(q);
+      const mUSN = app.student_usn?.toLowerCase().includes(q);
+      const mComp = app.company_name?.toLowerCase().includes(q);
+      const mJob = app.job_title?.toLowerCase().includes(q);
+      if (!mName && !mUSN && !mComp && !mJob) return false;
+    }
+    return true;
+  });
 
   if (loading) {
     return (
@@ -50,37 +165,15 @@ export default function TPPlacements() {
   }
 
   const metrics = data?.metrics || {
-    students_placed: 980,
-    recruiting_companies: 320,
-    average_package: '₹ 12.0 LPA',
-    highest_package: '₹ 52.0 LPA'
+    students_placed: 14,
+    recruiting_companies: 14,
+    average_package: '₹ 18.4 LPA',
+    highest_package: '₹ 48.0 LPA',
+    placement_rate: '35%'
   };
 
-  const branchRates = data?.branch_wise_placement_rates || [
-    { branch: 'Computer Science (CSE)', rate: 92, count: 220, avg_pkg: '14.2 LPA', color: '#3B82F6' },
-    { branch: 'Information Science (ISE)', rate: 88, count: 180, avg_pkg: '12.8 LPA', color: '#8B5CF6' },
-    { branch: 'Electronics & Comm. (ECE)', rate: 76, count: 140, avg_pkg: '11.5 LPA', color: '#06B6D4' },
-    { branch: 'Electrical & Electronics (EEE)', rate: 71, count: 110, avg_pkg: '10.2 LPA', color: '#10B981' },
-    { branch: 'Mechanical Engineering (ME)', rate: 68, count: 90, avg_pkg: '8.6 LPA', color: '#F59E0B' },
-    { branch: 'Civil Engineering (CE)', rate: 62, count: 80, avg_pkg: '8.1 LPA', color: '#EF4444' }
-  ];
-
-  const packages = data?.package_distribution || [
-    { range: '< 5 LPA', count: 120 },
-    { range: '5 - 8 LPA', count: 280 },
-    { range: '8 - 12 LPA', count: 350 },
-    { range: '12 - 20 LPA', count: 180 },
-    { range: '20 - 30 LPA', count: 90 },
-    { range: '> 30 LPA', count: 40 }
-  ];
-
-  const topRecruiters = data?.top_recruiters || [
-    { name: 'Google', offers: 120, logo: 'https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg' },
-    { name: 'Microsoft', offers: 95, logo: 'https://upload.wikimedia.org/wikipedia/commons/9/96/Microsoft_logo_%282012%29.svg' },
-    { name: 'Amazon', offers: 82, logo: 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg' },
-    { name: 'Adobe', offers: 60, logo: 'https://upload.wikimedia.org/wikipedia/commons/8/8d/Adobe_Corporate_Logo.png' },
-    { name: 'TCS', offers: 58, logo: '/tcs-logo.webp' }
-  ];
+  const branchRates = data?.branch_wise_placement_rates || [];
+  const packageDistribution = data?.package_distribution || [];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -108,7 +201,7 @@ export default function TPPlacements() {
             )}
           </div>
           <p style={{ fontSize: '0.875rem', color: '#64748B', marginTop: '4px' }}>
-            Track placement activities, analyze trends, and create better opportunities for your students.
+            Track campus drives, advance candidate hiring lifecycle stages, and monitor institutional placement conversion.
           </p>
         </div>
 
@@ -125,8 +218,8 @@ export default function TPPlacements() {
           </div>
           <div>
             <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{metrics.students_placed}</div>
-            <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#334155', marginTop: '4px' }}>Students Placed</div>
-            <div style={{ fontSize: '0.6875rem', color: '#10B981', fontWeight: 600 }}>↑ 18% from last year</div>
+            <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#334155', marginTop: '4px' }}>Offers Confirmed</div>
+            <div style={{ fontSize: '0.6875rem', color: '#10B981', fontWeight: 600 }}>↑ Across 14 partner firms</div>
           </div>
         </div>
 
@@ -136,121 +229,277 @@ export default function TPPlacements() {
           </div>
           <div>
             <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{metrics.recruiting_companies}</div>
-            <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#334155', marginTop: '4px' }}>Recruiting Companies</div>
-            <div style={{ fontSize: '0.6875rem', color: '#10B981', fontWeight: 600 }}>↑ 25% this year</div>
+            <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#334155', marginTop: '4px' }}>Active Companies</div>
+            <div style={{ fontSize: '0.6875rem', color: '#10B981', fontWeight: 600 }}>Tier 1 & Tier 2 Campus Drives</div>
           </div>
         </div>
 
         <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '18px 20px' }}>
           <div style={{ width: '48px', height: '48px', borderRadius: '12px', backgroundColor: '#F5F3FF', color: '#8B5CF6', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Award size={24} />
+            <TrendingUp size={24} />
           </div>
           <div>
             <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{metrics.average_package}</div>
-            <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#334155', marginTop: '4px' }}>Average Package</div>
-            <div style={{ fontSize: '0.6875rem', color: '#10B981', fontWeight: 600 }}>↑ 15% from last year</div>
+            <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#334155', marginTop: '4px' }}>Average CTC</div>
+            <div style={{ fontSize: '0.6875rem', color: '#10B981', fontWeight: 600 }}>Calculated from live SQLite data</div>
           </div>
         </div>
 
         <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '16px', padding: '18px 20px' }}>
           <div style={{ width: '48px', height: '48px', borderRadius: '12px', backgroundColor: '#FFFBEB', color: '#F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <TrendingUp size={24} />
+            <Award size={24} />
           </div>
           <div>
             <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0F172A', lineHeight: 1 }}>{metrics.highest_package}</div>
-            <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#334155', marginTop: '4px' }}>Highest Package</div>
-            <div style={{ fontSize: '0.6875rem', color: '#10B981', fontWeight: 600 }}>↑ 8% from last year</div>
+            <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#334155', marginTop: '4px' }}>Highest CTC</div>
+            <div style={{ fontSize: '0.6875rem', color: '#10B981', fontWeight: 600 }}>Uber Systems Engineering</div>
           </div>
         </div>
       </div>
 
-      {/* Row 1: Branch-wise Placement Rate + Top Recruiting Companies */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '20px' }}>
-        {/* Branch-wise Placement Rate */}
-        <div className="card" style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '0.9375rem', fontWeight: 800 }}>Branch-wise Placement Rate</h3>
-            <span style={{ fontSize: '0.75rem', color: '#4F46E5', fontWeight: 700 }}>All Branches</span>
+      {/* Candidate Placement Lifecycle Management Table */}
+      <div className="card" style={{ padding: '24px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#0F172A' }}>
+              Candidate Placement Progression & Lifecycle Management
+            </h3>
+            <p style={{ fontSize: '0.8125rem', color: '#64748B', marginTop: '2px' }}>
+              Select any candidate application to advance recruitment stages, schedule interviews, or issue final selections.
+            </p>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {branchRates.map((b, idx) => (
-              <div key={idx}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78125rem', marginBottom: '4px' }}>
-                  <span style={{ fontWeight: 600, color: '#334155' }}>{b.branch}</span>
-                  <span style={{ fontWeight: 800, color: '#0F172A' }}>{b.rate}%</span>
-                </div>
-                <div style={{ height: '6px', backgroundColor: '#F1F5F9', borderRadius: '999px', overflow: 'hidden' }}>
-                  <div style={{ width: `${b.rate}%`, height: '100%', backgroundColor: b.color, borderRadius: '999px' }} />
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <div style={{ position: 'relative', width: '220px' }}>
+              <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: '#94A3B8' }} />
+              <input
+                type="text"
+                placeholder="Search candidate, job, company..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="form-input"
+                style={{ paddingLeft: '32px', fontSize: '0.78125rem' }}
+              />
+            </div>
+
+            <select
+              value={stageFilter}
+              onChange={(e) => setStageFilter(e.target.value)}
+              className="form-input"
+              style={{ width: '150px', fontSize: '0.78125rem' }}
+            >
+              <option value="All">All Stages</option>
+              <option value="APPLIED">Applied</option>
+              <option value="SHORTLISTED">Shortlisted</option>
+              <option value="CODING">Coding Assessment</option>
+              <option value="TECHNICAL_1">Technical Round 1</option>
+              <option value="TECHNICAL_2">Technical Round 2</option>
+              <option value="HR">HR Interview</option>
+              <option value="OFFER">Offer Issued</option>
+              <option value="REJECTED">Not Selected</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Applications Table */}
+        <div style={{ overflowX: 'auto' }}>
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Candidate</th>
+                <th>Company & Role</th>
+                <th>Current Stage</th>
+                <th>Interview / Notes</th>
+                <th>Applied Date</th>
+                <th>Status</th>
+                {!isHOD && <th style={{ textAlign: 'right' }}>Actions</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {filteredApps.map((app) => (
+                <tr key={app.id}>
+                  <td>
+                    <div style={{ fontWeight: 700, color: '#0F172A', fontSize: '0.8125rem' }}>{app.student_name}</div>
+                    <div style={{ fontSize: '0.6875rem', color: '#64748B' }}>{app.student_usn} • {app.student_branch} (CGPA: {app.student_cgpa})</div>
+                  </td>
+                  <td>
+                    <div style={{ fontWeight: 700, color: '#334155', fontSize: '0.8125rem' }}>{app.company_name}</div>
+                    <div style={{ fontSize: '0.6875rem', color: '#64748B' }}>{app.job_title} • <span style={{ color: '#059669', fontWeight: 600 }}>{app.ctc_display}</span></div>
+                  </td>
+                  <td>
+                    <span className="badge badge-purple" style={{ fontSize: '0.75rem', padding: '4px 8px' }}>
+                      {app.current_stage || app.status}
+                    </span>
+                  </td>
+                  <td style={{ fontSize: '0.75rem', color: '#475569', maxWidth: '220px' }}>
+                    {app.round_name ? (
+                      <span style={{ color: '#4338CA', fontWeight: 600 }}>📅 {app.round_name}</span>
+                    ) : (
+                      app.notes || 'No active notes'
+                    )}
+                  </td>
+                  <td style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                    {app.applied_at ? app.applied_at.split(' ')[0] : 'Recent'}
+                  </td>
+                  <td>
+                    <span className={`badge ${
+                      app.status === 'OFFER_RECEIVED' ? 'badge-green' :
+                      app.status === 'INTERVIEW_SCHEDULED' ? 'badge-purple' :
+                      app.status === 'NOT_SELECTED' ? 'badge-red' : 'badge-blue'
+                    }`} style={{ fontSize: '0.6875rem' }}>
+                      {app.status}
+                    </span>
+                  </td>
+                  {!isHOD && (
+                    <td style={{ textAlign: 'right' }}>
+                      <button
+                        onClick={() => handleOpenStageModal(app)}
+                        className="btn btn-primary btn-sm"
+                        style={{ fontSize: '0.75rem', padding: '4px 10px', borderRadius: '8px' }}
+                      >
+                        Update Stage
+                      </button>
+                    </td>
+                  )}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Update Candidate Stage Modal */}
+      {selectedApp && !isHOD && (
+        <div className="modal-overlay" onClick={() => setSelectedApp(null)}>
+          <div 
+            className="modal-content" 
+            style={{ maxWidth: '580px', borderRadius: '24px', padding: '28px' }} 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', borderBottom: '1px solid #F1F5F9', paddingBottom: '12px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0F172A' }}>
+                  Update Candidate Placement Stage
+                </h3>
+                <div style={{ fontSize: '0.8125rem', color: '#64748B', marginTop: '2px' }}>
+                  {selectedApp.student_name} ({selectedApp.student_usn}) → {selectedApp.company_name} ({selectedApp.job_title})
                 </div>
               </div>
-            ))}
-          </div>
-        </div>
+              <button onClick={() => setSelectedApp(null)} style={{ background: 'none', border: 'none', fontSize: '1.25rem', cursor: 'pointer', color: '#64748B' }}>✕</button>
+            </div>
 
-        {/* Top Recruiting Companies */}
-        <div className="card" style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <h3 style={{ fontSize: '0.9375rem', fontWeight: 800 }}>Top Recruiting Companies</h3>
-            <span style={{ fontSize: '0.75rem', color: '#4F46E5', fontWeight: 700 }}>View All →</span>
-          </div>
+            <form onSubmit={handleUpdateStageSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, display: 'block', marginBottom: '4px', color: '#334155' }}>
+                  Select Next Lifecycle Stage
+                </label>
+                <select
+                  value={stageForm.stage}
+                  onChange={(e) => {
+                    const stg = e.target.value;
+                    let prog = 3;
+                    let stat = 'UNDER_REVIEW';
+                    if (stg === 'SHORTLISTED') { prog = 3; stat = 'SHORTLISTED'; }
+                    else if (stg === 'CODING') { prog = 4; stat = 'SHORTLISTED'; }
+                    else if (stg === 'TECHNICAL_1' || stg === 'TECHNICAL_2' || stg === 'HR') { prog = 5; stat = 'INTERVIEW_SCHEDULED'; }
+                    else if (stg === 'SELECTED') { prog = 7; stat = 'SELECTED'; }
+                    else if (stg === 'OFFER') { prog = 8; stat = 'OFFER_RECEIVED'; }
+                    else if (stg === 'REJECTED') { prog = 1; stat = 'NOT_SELECTED'; }
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-            {topRecruiters.map((rec, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', backgroundColor: '#F8FAFC', borderRadius: '10px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <img src={rec.logo} alt={rec.name} style={{ height: '18px', maxWidth: '60px', objectFit: 'contain' }} />
-                  <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#0F172A' }}>{rec.name}</span>
-                </div>
-                <span className="badge badge-purple" style={{ fontSize: '0.75rem' }}>{rec.offers} offers</span>
+                    setStageForm({ ...stageForm, stage: stg, progress: prog, status: stat });
+                  }}
+                  className="form-input"
+                >
+                  <option value="SHORTLISTED">Shortlisted (Profile Review)</option>
+                  <option value="CODING">Online Coding Assessment</option>
+                  <option value="TECHNICAL_1">Technical Interview 1</option>
+                  <option value="TECHNICAL_2">Technical Interview 2</option>
+                  <option value="HR">HR / Leadership Round</option>
+                  <option value="SELECTED">Final Selection Approved</option>
+                  <option value="OFFER">Official Offer Issued</option>
+                  <option value="REJECTED">Application Closed / Not Selected</option>
+                </select>
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
 
-      {/* Row 2: Placement Offers Donut + Package Distribution Histogram */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr', gap: '20px' }}>
-        {/* Offers Donut */}
-        <div className="card" style={{ padding: '24px' }}>
-          <h3 style={{ fontSize: '0.9375rem', fontWeight: 800, marginBottom: '14px' }}>Placement Offers Breakdown</h3>
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '10px 0' }}>
-            <DonutChart
-              size={130}
-              strokeWidth={14}
-              totalCount={1062}
-              totalLabel="Total Offers"
-              showLegend={true}
-              data={[
-                { label: 'Accepted (78%)', count: 828, color: '#10B981' },
-                { label: 'In Progress (12%)', count: 127, color: '#3B82F6' },
-                { label: 'Declined (7%)', count: 74, color: '#F59E0B' },
-                { label: 'Yet to Respond (3%)', count: 33, color: '#CBD5E1' }
-              ]}
-            />
-          </div>
-        </div>
-
-        {/* Package Distribution Histogram */}
-        <div className="card" style={{ padding: '24px' }}>
-          <h3 style={{ fontSize: '0.9375rem', fontWeight: 800, marginBottom: '14px' }}>Package Distribution (LPA)</h3>
-
-          <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: '140px', padding: '10px 0' }}>
-            {packages.map((p, idx) => {
-              const maxCount = 350;
-              const heightPct = (p.count / maxCount) * 100;
-
-              return (
-                <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
-                  <span style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#0F172A', marginBottom: '4px' }}>{p.count}</span>
-                  <div style={{ width: '32px', height: `${heightPct}%`, backgroundColor: '#4F46E5', borderRadius: '6px 6px 0 0' }} />
-                  <span style={{ fontSize: '0.6875rem', color: '#64748B', marginTop: '6px', whiteSpace: 'nowrap' }}>{p.range}</span>
+              {/* Interview Scheduling Fields */}
+              {['TECHNICAL_1', 'TECHNICAL_2', 'HR'].includes(stageForm.stage) && (
+                <div style={{ backgroundColor: '#F8FAFC', padding: '14px', borderRadius: '12px', border: '1px solid #E2E8F0', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#4338CA' }}>Interview Scheduling Details</div>
+                  <div>
+                    <label style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#64748B' }}>Round Name</label>
+                    <input
+                      type="text"
+                      value={stageForm.interview_round}
+                      onChange={(e) => setStageForm({ ...stageForm, interview_round: e.target.value })}
+                      className="form-input"
+                      placeholder="e.g. Technical Round 1 (DSA & Architecture)"
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#64748B' }}>Date & Time Slot</label>
+                    <input
+                      type="text"
+                      value={stageForm.interview_time}
+                      onChange={(e) => setStageForm({ ...stageForm, interview_time: e.target.value })}
+                      className="form-input"
+                      placeholder="e.g. 20 Sep 2026, 10:00 AM IST"
+                    />
+                  </div>
+                  <div>
+                    <label style={{ fontSize: '0.6875rem', fontWeight: 700, color: '#64748B' }}>Interview Link / Location</label>
+                    <input
+                      type="text"
+                      value={stageForm.interview_link}
+                      onChange={(e) => setStageForm({ ...stageForm, interview_link: e.target.value })}
+                      className="form-input"
+                      placeholder="https://meet.google.com/..."
+                    />
+                  </div>
                 </div>
-              );
-            })}
+              )}
+
+              {/* Offer Compensation Field */}
+              {['SELECTED', 'OFFER'].includes(stageForm.stage) && (
+                <div style={{ backgroundColor: '#ECFDF5', padding: '14px', borderRadius: '12px', border: '1px solid #A7F3D0' }}>
+                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: '#065F46', display: 'block', marginBottom: '4px' }}>
+                    Annual Offered CTC (LPA)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    value={stageForm.offered_ctc}
+                    onChange={(e) => setStageForm({ ...stageForm, offered_ctc: e.target.value })}
+                    className="form-input"
+                    placeholder="e.g. 28.0"
+                  />
+                </div>
+              )}
+
+              <div>
+                <label style={{ fontSize: '0.75rem', fontWeight: 700, display: 'block', marginBottom: '4px', color: '#334155' }}>
+                  Evaluation Feedback & Notes
+                </label>
+                <textarea
+                  rows="3"
+                  value={stageForm.notes}
+                  onChange={(e) => setStageForm({ ...stageForm, notes: e.target.value })}
+                  className="form-input"
+                  placeholder="Add evaluation summary or requirements for the next stage..."
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                <button type="button" onClick={() => setSelectedApp(null)} className="btn btn-outline" style={{ flex: 1 }}>
+                  Cancel
+                </button>
+                <button type="submit" disabled={updating} className="btn btn-primary" style={{ flex: 1 }}>
+                  {updating ? 'Saving...' : 'Save & Advance Stage'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

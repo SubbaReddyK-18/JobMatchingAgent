@@ -1,38 +1,172 @@
 import express from 'express';
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 import { db } from '../db/database.js';
-import { authenticateToken } from '../middleware/auth.js';
+import { authenticateToken, requireRole, denyHODMutation } from '../middleware/auth.js';
 
 const router = express.Router();
 
-// Get full student profile (academics, skills, projects, certs, preferences, readiness)
-router.get('/profile', authenticateToken, async (req, res) => {
+// Get list of all students for T&P / HOD with skills array & readiness
+router.get('/', authenticateToken, async (req, res) => {
     try {
-        let studentId = req.query.student_id;
+        const students = await db.query(`
+            SELECT s.*, u.avatar_url as user_avatar,
+                   r.overall_readiness_score, r.technical_score, r.aptitude_score, r.communication_score, r.interview_readiness_score, r.status as readiness_status
+            FROM people_students s
+            LEFT JOIN identity_users u ON s.user_id = u.id
+            LEFT JOIN placement_readiness_summary r ON s.id = r.student_id
+            ORDER BY s.cgpa DESC
+        `);
 
-        if (!studentId && req.user.role_name === 'STUDENT') {
+        // Attach skills array for each student
+        const allSkills = await db.query('SELECT student_id, skill_name, proficiency_level, score FROM student_skills ORDER BY score DESC');
+        const skillMap = new Map();
+        for (const sk of allSkills) {
+            if (!skillMap.has(sk.student_id)) skillMap.set(sk.student_id, []);
+            skillMap.get(sk.student_id).push(sk.skill_name);
+        }
+
+        // Attach offer status
+        const allOffers = await db.query(`
+            SELECT a.student_id, o.offered_ctc, o.role_title, c.name as company_name
+            FROM placement_offers o
+            JOIN placement_drive_applications a ON o.application_id = a.id
+            JOIN placement_job_openings j ON a.job_opening_id = j.id
+            JOIN placement_companies c ON j.company_id = c.id
+            WHERE o.student_decision = 'ACCEPTED'
+        `);
+        const offerMap = new Map();
+        for (const off of allOffers) {
+            offerMap.set(off.student_id, off);
+        }
+
+        const enrichedStudents = students.map(s => {
+            const offer = offerMap.get(s.id);
+            const placementStatus = offer ? 'Placed' : s.overall_readiness_score > 80 ? 'Placement Ready' : 'In Preparation';
+            return {
+                ...s,
+                skills: skillMap.get(s.id) || [],
+                skills_list: (skillMap.get(s.id) || []).join(', '),
+                placement_status: placementStatus,
+                offer_details: offer || null
+            };
+        });
+
+        res.json({ students: enrichedStudents });
+    } catch (err) {
+        console.error('Error fetching students list:', err);
+        res.status(500).json({ error: 'Server error fetching students list' });
+    }
+});
+
+// Create new student (T&P Only, HOD blocked)
+router.post('/', authenticateToken, requireRole(['T_AND_P']), denyHODMutation, async (req, res) => {
+    try {
+        const { full_name, usn, email, branch, department, admission_year, graduation_year, semester, cgpa, password } = req.body;
+
+        if (!full_name || !usn || !email || !branch || !cgpa) {
+            return res.status(400).json({ error: 'Missing required fields (full_name, usn, email, branch, cgpa)' });
+        }
+
+        const cleanUSN = usn.toUpperCase().trim();
+        const cleanEmail = email.toLowerCase().trim();
+
+        // Check for existing USN or Email
+        const existing = await db.get('SELECT id FROM people_students WHERE usn = ? OR email = ?', [cleanUSN, cleanEmail]);
+        if (existing) {
+            return res.status(400).json({ error: 'A student with this USN or Email already exists.' });
+        }
+
+        const userId = 'usr_' + crypto.randomBytes(6).toString('hex');
+        const studentId = 'std_' + crypto.randomBytes(6).toString('hex');
+        const plainPassword = password || 'Student@123';
+        const passwordHash = await bcrypt.hash(plainPassword, 10);
+
+        // 1. Create Identity User
+        await db.run(`
+            INSERT INTO identity_users (id, identifier_code, email, password_hash, full_name, role_id)
+            VALUES (?, ?, ?, ?, ?, 'role_student')
+        `, [userId, cleanUSN, cleanEmail, passwordHash, full_name.trim()]);
+
+        // 2. Create Student Profile
+        const dept = department || (branch === 'CSE' ? 'Computer Science and Engineering' : branch === 'ISE' ? 'Information Science and Engineering' : branch === 'ECE' ? 'Electronics & Communication' : branch === 'EEE' ? 'Electrical and Electronics' : branch === 'ME' ? 'Mechanical Engineering' : 'Engineering');
+        const adm = admission_year ? parseInt(admission_year) : 2023;
+        const grad = graduation_year ? parseInt(graduation_year) : 2027;
+        const sem = semester ? parseInt(semester) : 5;
+        const numCgpa = parseFloat(cgpa);
+
+        await db.run(`
+            INSERT INTO people_students (id, user_id, usn, full_name, email, branch, department, admission_year, graduation_year, semester, cgpa, active_backlogs, bio)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 'Engineering student at RV College of Engineering.')
+        `, [studentId, userId, cleanUSN, full_name.trim(), cleanEmail, branch.toUpperCase(), dept, adm, grad, sem, numCgpa]);
+
+        // 3. Default Readiness Score
+        const readinessScore = Math.min(95, Math.max(50, Math.round(numCgpa * 10)));
+        await db.run(`
+            INSERT INTO placement_readiness_summary (student_id, overall_readiness_score, technical_score, aptitude_score, communication_score, interview_readiness_score, status)
+            VALUES (?, ?, ?, ?, ?, ?, 'Placement Ready')
+        `, [studentId, readinessScore, readinessScore + 2, readinessScore - 3, readinessScore, readinessScore]);
+
+        // 4. Default baseline skills
+        const defaultSkills = branch === 'CSE' || branch === 'ISE' ? ['Python', 'Data Structures', 'SQL', 'Algorithms', 'Java'] : branch === 'ECE' ? ['C++', 'Embedded C', 'VLSI', 'Verilog', 'MATLAB'] : ['AutoCAD', 'SolidWorks', 'Python', 'MATLAB'];
+        for (const sk of defaultSkills) {
+            await db.run(`
+                INSERT INTO student_skills (id, student_id, skill_name, category, proficiency_level, score, verified)
+                VALUES (?, ?, ?, 'Engineering', 'Advanced', 0.85, 1)
+            `, ['sk_' + crypto.randomBytes(6).toString('hex'), studentId, sk]);
+        }
+
+        res.status(201).json({
+            message: 'Student account and academic profile created successfully!',
+            student: {
+                id: studentId,
+                user_id: userId,
+                usn: cleanUSN,
+                full_name: full_name.trim(),
+                email: cleanEmail,
+                branch: branch.toUpperCase(),
+                cgpa: numCgpa
+            }
+        });
+    } catch (err) {
+        console.error('Error creating student account:', err);
+        res.status(500).json({ error: 'Server error creating student record' });
+    }
+});
+
+// Get single student profile by ID (for T&P / HOD / Student)
+router.get('/:id', authenticateToken, async (req, res) => {
+    try {
+        let studentId = req.params.id;
+        if (studentId === 'profile' || studentId === 'me') {
             const student = await db.get('SELECT id FROM people_students WHERE user_id = ?', [req.user.id]);
             if (student) studentId = student.id;
+            else studentId = 'std_subbu';
         }
 
-        if (!studentId) {
-            studentId = 'std_subbu'; // default fallback demo persona
-        }
+        const student = await db.get(`
+            SELECT s.*, u.avatar_url as user_avatar, u.identifier_code
+            FROM people_students s
+            LEFT JOIN identity_users u ON s.user_id = u.id
+            WHERE s.id = ? OR s.user_id = ?
+        `, [studentId, studentId]);
 
-        const student = await db.get('SELECT * FROM people_students WHERE id = ?', [studentId]);
         if (!student) {
             return res.status(404).json({ error: 'Student record not found' });
         }
 
-        const skills = await db.query('SELECT * FROM student_skills WHERE student_id = ? ORDER BY score DESC', [studentId]);
-        const projects = await db.query('SELECT * FROM student_projects WHERE student_id = ?', [studentId]);
+        const realStudentId = student.id;
+
+        const skills = await db.query('SELECT * FROM student_skills WHERE student_id = ? ORDER BY score DESC', [realStudentId]);
+        const projects = await db.query('SELECT * FROM student_projects WHERE student_id = ?', [realStudentId]);
         const parsedProjects = projects.map(p => ({
             ...p,
             tech_stack: typeof p.tech_stack === 'string' ? JSON.parse(p.tech_stack) : p.tech_stack
         }));
 
-        const certs = await db.query('SELECT * FROM student_certifications WHERE student_id = ?', [studentId]);
-        const preferences = await db.get('SELECT * FROM student_preferences WHERE student_id = ?', [studentId]);
-        const readiness = await db.get('SELECT * FROM placement_readiness_summary WHERE student_id = ?', [studentId]);
+        const certs = await db.query('SELECT * FROM student_certifications WHERE student_id = ?', [realStudentId]);
+        const preferences = await db.get('SELECT * FROM student_preferences WHERE student_id = ?', [realStudentId]);
+        const readiness = await db.get('SELECT * FROM placement_readiness_summary WHERE student_id = ?', [realStudentId]);
 
         const parsedPrefs = preferences ? {
             ...preferences,
@@ -41,13 +175,25 @@ router.get('/profile', authenticateToken, async (req, res) => {
             preferred_job_types: typeof preferences.preferred_job_types === 'string' ? JSON.parse(preferences.preferred_job_types) : preferences.preferred_job_types
         } : null;
 
-        // Quick Stats for student
-        const appStats = await db.get('SELECT COUNT(*) as total_apps FROM placement_drive_applications WHERE student_id = ?', [studentId]);
-        const interviewStats = await db.get(`
-            SELECT COUNT(*) as interview_count 
-            FROM placement_interviews i 
-            JOIN placement_drive_applications a ON i.application_id = a.id 
-            WHERE a.student_id = ?`, [studentId]);
+        // Applications history for this student
+        const applications = await db.query(`
+            SELECT a.*, j.title as job_title, j.location as job_location, j.ctc_display, c.name as company_name, c.logo_url as company_logo
+            FROM placement_drive_applications a
+            JOIN placement_job_openings j ON a.job_opening_id = j.id
+            JOIN placement_companies c ON j.company_id = c.id
+            WHERE a.student_id = ?
+            ORDER BY a.applied_at DESC
+        `, [realStudentId]);
+
+        // Offers for this student
+        const offers = await db.query(`
+            SELECT o.*, j.title as job_title, c.name as company_name
+            FROM placement_offers o
+            JOIN placement_drive_applications a ON o.application_id = a.id
+            JOIN placement_job_openings j ON a.job_opening_id = j.id
+            JOIN placement_companies c ON j.company_id = c.id
+            WHERE a.student_id = ?
+        `, [realStudentId]);
 
         res.json({
             student,
@@ -57,27 +203,30 @@ router.get('/profile', authenticateToken, async (req, res) => {
             preferences: parsedPrefs,
             readiness: readiness || {
                 overall_readiness_score: 82,
-                technical_score: 88,
-                aptitude_score: 85,
+                technical_score: 85,
+                aptitude_score: 80,
                 communication_score: 78,
-                interview_readiness_score: 76,
+                interview_readiness_score: 85,
                 status: 'Placement Ready'
             },
+            applications,
+            offers,
             stats: {
-                total_applications: appStats ? appStats.total_apps : 6,
-                interviews_scheduled: interviewStats ? interviewStats.interview_count : 2,
+                total_applications: applications.length,
+                interviews_scheduled: applications.filter(a => a.status === 'INTERVIEW_SCHEDULED').length,
+                offers_count: offers.length,
                 learning_hours: 36,
                 skills_improved: 4,
                 profile_completeness: 92
             }
         });
     } catch (err) {
-        console.error('Error fetching student profile:', err);
-        res.status(500).json({ error: 'Server error fetching student profile' });
+        console.error('Error fetching student profile details:', err);
+        res.status(500).json({ error: 'Server error fetching student profile details' });
     }
 });
 
-// Update student profile
+// Update student profile (Self or T&P)
 router.put('/profile', authenticateToken, async (req, res) => {
     try {
         let studentId = req.body.student_id;
@@ -92,7 +241,7 @@ router.put('/profile', authenticateToken, async (req, res) => {
         }
         if (!studentId) studentId = 'std_subbu';
 
-        const { full_name, bio, linkedin_url, github_url, phone, location, avatar_url } = req.body;
+        const { full_name, bio, linkedin_url, github_url, phone, avatar_url, skills, career_goals, preferred_roles, preferred_locations } = req.body;
 
         await db.run(
             `UPDATE people_students 
@@ -108,7 +257,7 @@ router.put('/profile', authenticateToken, async (req, res) => {
 
         if (userId) {
             await db.run(
-                `UPDATE users 
+                `UPDATE identity_users 
                  SET full_name = COALESCE(?, full_name),
                      avatar_url = COALESCE(?, avatar_url)
                  WHERE id = ?`,
@@ -116,13 +265,24 @@ router.put('/profile', authenticateToken, async (req, res) => {
             );
         }
 
+        // Update preferences if provided
+        if (preferred_roles || preferred_locations) {
+            await db.run(`
+                INSERT INTO student_preferences (student_id, preferred_roles, preferred_locations, willing_to_relocate)
+                VALUES (?, ?, ?, 1)
+                ON CONFLICT(student_id) DO UPDATE SET
+                    preferred_roles = COALESCE(excluded.preferred_roles, preferred_roles),
+                    preferred_locations = COALESCE(excluded.preferred_locations, preferred_locations)
+            `, [studentId, preferred_roles ? JSON.stringify(preferred_roles) : null, preferred_locations ? JSON.stringify(preferred_locations) : null]);
+        }
+
         res.json({ 
-            message: 'Profile updated successfully',
-            updated: { full_name, bio, linkedin_url, github_url, phone, location, avatar_url }
+            message: 'Profile updated successfully!',
+            updated: { full_name, bio, linkedin_url, github_url, phone, avatar_url }
         });
     } catch (err) {
-        console.error('Error updating profile:', err);
-        res.status(500).json({ error: 'Error updating profile' });
+        console.error('Error updating student profile:', err);
+        res.status(500).json({ error: 'Error updating student profile' });
     }
 });
 

@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48px" height="48px">
+  <rect width="48" height="48" rx="8" fill="#182554"/>
+  <text x="24" y="29" fill="#FFFFFF" font-size="14" font-weight="900" font-family="sans-serif" text-anchor="middle">TCS</text>
+  <line x1="12" y1="34" x2="36" y2="34" stroke="#e01a4f" stroke-width="2.5" stroke-linecap="round"/>
+</svg>

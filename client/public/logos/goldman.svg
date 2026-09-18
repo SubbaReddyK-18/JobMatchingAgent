@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48px" height="48px">
+  <rect width="48" height="48" rx="8" fill="#729fcf"/>
+  <rect x="3" y="3" width="42" height="42" rx="6" fill="#1b365d"/>
+  <text x="24" y="22" fill="#FFFFFF" font-size="9" font-weight="bold" font-family="serif" text-anchor="middle">Goldman</text>
+  <text x="24" y="34" fill="#FFFFFF" font-size="9" font-weight="bold" font-family="serif" text-anchor="middle">Sachs</text>
+</svg>

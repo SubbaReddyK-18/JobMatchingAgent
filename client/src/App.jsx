@@ -27,22 +27,81 @@ import TPCandidateRanking from './pages/TPCandidateRanking';
 import TPUnmatchedStudents from './pages/TPUnmatchedStudents';
 import TPLearningSkills from './pages/TPLearningSkills';
 import TPAnalytics from './pages/TPAnalytics';
-import TPReports from './pages/TPReports';
-import TPCommunications from './pages/TPCommunications';
 import TPSettings from './pages/TPSettings';
 import AgentOpsLogs from './pages/AgentOpsLogs';
+
+const pathToView = (path) => {
+  const cleanPath = (path || '').toLowerCase().replace(/\/+$/, '') || '/';
+  if (cleanPath === '/' || cleanPath === '/landing') return 'landing';
+  if (cleanPath === '/portal' || cleanPath === '/portals') return 'portals';
+  if (cleanPath === '/login') return 'login';
+  if (cleanPath === '/opportunities') return 'student-opportunities';
+  if (cleanPath === '/matches' || cleanPath === '/my-matches') return 'student-matches';
+  if (cleanPath === '/opportunity-details') return 'opportunity-details';
+  if (cleanPath === '/preparation' || cleanPath === '/preparation-center') return 'preparation-center';
+  if (cleanPath === '/applications' || cleanPath === '/my-applications') return 'student-applications';
+  if (cleanPath === '/profile' || cleanPath === '/my-profile') return 'student-profile';
+  if (cleanPath === '/dashboard' || cleanPath === '/overview') return 'student-dashboard';
+  if (cleanPath === '/institution' || cleanPath === '/institution/dashboard') return 'tp-dashboard';
+  if (cleanPath === '/institution/students' || cleanPath === '/students') return 'tp-students';
+  if (cleanPath === '/institution/placements' || cleanPath === '/placements') return 'tp-placements';
+  if (cleanPath === '/institution/opportunities') return 'tp-opportunities';
+  if (cleanPath === '/institution/candidate-ranking' || cleanPath === '/candidate-ranking') return 'tp-candidate-ranking';
+  if (cleanPath === '/institution/unmatched' || cleanPath === '/unmatched') return 'tp-unmatched';
+  if (cleanPath === '/institution/learning' || cleanPath === '/institution/learning-skills' || cleanPath === '/learning-skills') return 'tp-learning';
+  if (cleanPath === '/institution/analytics' || cleanPath === '/analytics') return 'tp-analytics';
+  if (cleanPath === '/institution/settings' || cleanPath === '/settings') return 'tp-settings';
+  if (cleanPath === '/agentops') return 'agentops';
+  return 'landing';
+};
+
+const viewToPath = (view) => {
+  switch (view) {
+    case 'landing': return '/landing';
+    case 'portals': return '/portal';
+    case 'login': return '/login';
+    case 'student-dashboard': return '/dashboard';
+    case 'student-opportunities': return '/opportunities';
+    case 'student-matches': return '/matches';
+    case 'opportunity-details': return '/opportunity-details';
+    case 'preparation-center': return '/preparation';
+    case 'student-applications': return '/applications';
+    case 'student-profile': return '/profile';
+    case 'tp-dashboard': return '/institution/dashboard';
+    case 'tp-students': return '/institution/students';
+    case 'tp-placements': return '/institution/placements';
+    case 'tp-opportunities': return '/institution/opportunities';
+    case 'tp-candidate-ranking': return '/institution/candidate-ranking';
+    case 'tp-unmatched': return '/institution/unmatched';
+    case 'tp-learning': return '/institution/learning-skills';
+    case 'tp-analytics': return '/institution/analytics';
+    case 'tp-settings': return '/institution/settings';
+    case 'agentops': return '/agentops';
+    default: return '/landing';
+  }
+};
 
 function MainApp() {
   const { user, isAuthenticated, loading, isStudent, isTP, isHOD } = useAuth();
   
-  // Navigation & Layout state
-  const [currentView, setCurrentView] = useState('landing');
+  // Navigation & Layout state initialized from URL
+  const [currentView, setCurrentView] = useState(() => pathToView(window.location.pathname));
   const [loginRole, setLoginRole] = useState('STUDENT');
   const [selectedJobId, setSelectedJobId] = useState(1);
   const [rankingJobId, setRankingJobId] = useState(1);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
     return localStorage.getItem('jobmatch_sidebar_collapsed') === 'true';
   });
+
+  const navigate = (view, pushHistory = true) => {
+    setCurrentView(view);
+    if (pushHistory) {
+      const urlPath = viewToPath(view);
+      if (window.location.pathname !== urlPath) {
+        window.history.pushState({ view }, '', urlPath);
+      }
+    }
+  };
 
   const toggleSidebar = () => {
     setIsSidebarCollapsed(prev => {
@@ -52,16 +111,27 @@ function MainApp() {
     });
   };
 
-  // Sync default view when auth state changes
+  // Listen to browser Back / Forward buttons
+  useEffect(() => {
+    const handlePopState = () => {
+      const view = pathToView(window.location.pathname);
+      setCurrentView(view);
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // Sync view when auth state changes
   useEffect(() => {
     if (isAuthenticated) {
       if (currentView === 'landing' || currentView === 'portals' || currentView === 'login') {
-        if (isStudent) setCurrentView('student-dashboard');
-        else setCurrentView('tp-dashboard');
+        const defaultView = isStudent ? 'student-dashboard' : 'tp-dashboard';
+        navigate(defaultView, true);
       }
     } else {
       if (currentView !== 'login' && currentView !== 'landing' && currentView !== 'portals') {
-        setCurrentView('landing');
+        navigate('landing', false);
       }
     }
   }, [isAuthenticated, isStudent, isTP, isHOD]);
@@ -81,11 +151,11 @@ function MainApp() {
         <LoginPage 
           initialRole={loginRole}
           onLoginSuccess={(targetView) => {
-            if (targetView) setCurrentView(targetView);
-            else if (user?.role === 'STUDENT') setCurrentView('student-dashboard');
-            else setCurrentView('tp-dashboard');
+            if (targetView) navigate(targetView);
+            else if (user?.role === 'STUDENT') navigate('student-dashboard');
+            else navigate('tp-dashboard');
           }}
-          onBackToLanding={() => setCurrentView('portals')}
+          onBackToLanding={() => navigate('portals')}
         />
       );
     }
@@ -95,23 +165,23 @@ function MainApp() {
         <PortalsPage 
           onSelectPortal={(portalRole) => {
             setLoginRole(portalRole || 'STUDENT');
-            setCurrentView('login');
+            navigate('login');
           }}
-          onBackToLanding={() => setCurrentView('landing')}
+          onBackToLanding={() => navigate('landing')}
         />
       );
     }
 
     return (
       <LandingPage 
-        onGetStarted={() => setCurrentView('portals')}
+        onGetStarted={() => navigate('portals')}
         onOpenLogin={(role) => {
           setLoginRole(role || 'STUDENT');
-          setCurrentView('login');
+          navigate('login');
         }}
         onSelectPortal={(portalRole) => {
           if (portalRole) setLoginRole(portalRole);
-          setCurrentView('portals');
+          navigate('portals');
         }}
       />
     );
@@ -120,13 +190,13 @@ function MainApp() {
   // Helper callbacks
   const handleViewJob = (jobId) => {
     setSelectedJobId(jobId);
-    setCurrentView('opportunity-details');
+    navigate('opportunity-details');
   };
 
   const handleViewCandidateRanking = (jobId) => {
     if (isHOD) return; // HOD cannot access candidate ranking operations
     setRankingJobId(jobId);
-    setCurrentView('tp-candidate-ranking');
+    navigate('tp-candidate-ranking');
   };
 
   // 2. Role-Isolated Content Renderer
@@ -135,28 +205,28 @@ function MainApp() {
     if (isStudent) {
       switch (currentView) {
         case 'student-dashboard':
-          return <StudentDashboard onNavigate={setCurrentView} onViewJob={handleViewJob} />;
+          return <StudentDashboard onNavigate={navigate} onViewJob={handleViewJob} />;
         case 'student-opportunities':
-          return <StudentOpportunities onViewJob={handleViewJob} onPrepareRole={() => setCurrentView('preparation-center')} />;
+          return <StudentOpportunities onViewJob={handleViewJob} onPrepareRole={() => navigate('preparation-center')} />;
         case 'student-matches':
-          return <StudentMatches onViewJob={handleViewJob} />;
+          return <StudentMatches onViewJob={handleViewJob} onNavigate={navigate} />;
         case 'opportunity-details':
           return (
             <OpportunityDetails 
               jobId={selectedJobId} 
-              onBack={() => setCurrentView('student-opportunities')} 
-              onNavigate={setCurrentView}
-              onPrepareRole={() => setCurrentView('preparation-center')}
+              onBack={() => navigate('student-opportunities')} 
+              onNavigate={navigate}
+              onPrepareRole={() => navigate('preparation-center')}
             />
           );
         case 'preparation-center':
-          return <PreparationCenter onNavigate={setCurrentView} />;
+          return <PreparationCenter onNavigate={navigate} />;
         case 'student-applications':
-          return <StudentApplications onNavigate={setCurrentView} onPrepareRole={() => setCurrentView('preparation-center')} />;
+          return <StudentApplications onNavigate={navigate} onPrepareRole={() => navigate('preparation-center')} />;
         case 'student-profile':
-          return <StudentProfile onNavigate={setCurrentView} />;
+          return <StudentProfile onNavigate={navigate} />;
         default:
-          return <StudentDashboard onNavigate={setCurrentView} onViewJob={handleViewJob} />;
+          return <StudentDashboard onNavigate={navigate} onViewJob={handleViewJob} />;
       }
     }
 
@@ -164,21 +234,23 @@ function MainApp() {
     if (isHOD) {
       switch (currentView) {
         case 'tp-dashboard':
-          return <TPDashboard onNavigate={setCurrentView} />;
+          return <TPDashboard onNavigate={navigate} />;
         case 'tp-students':
-          return <TPStudents />;
+          return <TPStudents onNavigate={navigate} />;
         case 'tp-placements':
-          return <TPPlacements />;
+          return <TPPlacements onNavigate={navigate} />;
         case 'tp-opportunities':
-          return <TPOpportunities onViewCandidates={() => {}} />;
+          return <TPOpportunities onViewCandidates={(jobId) => { setRankingJobId(jobId); navigate('tp-candidate-ranking'); }} onNavigate={navigate} />;
+        case 'tp-candidate-ranking':
+          return <TPCandidateRanking initialJobId={rankingJobId} onNavigate={navigate} />;
         case 'tp-learning':
-          return <TPLearningSkills />;
+          return <TPLearningSkills onNavigate={navigate} />;
         case 'tp-analytics':
-          return <TPAnalytics />;
-        case 'tp-reports':
-          return <TPReports />;
+          return <TPAnalytics onNavigate={navigate} />;
+        case 'tp-settings':
+          return <TPSettings onNavigate={navigate} />;
         default:
-          return <TPDashboard onNavigate={setCurrentView} />;
+          return <TPDashboard onNavigate={navigate} />;
       }
     }
 
@@ -186,31 +258,27 @@ function MainApp() {
     if (isTP) {
       switch (currentView) {
         case 'tp-dashboard':
-          return <TPDashboard onNavigate={setCurrentView} />;
+          return <TPDashboard onNavigate={navigate} />;
         case 'tp-students':
-          return <TPStudents />;
+          return <TPStudents onNavigate={navigate} />;
         case 'tp-placements':
-          return <TPPlacements />;
+          return <TPPlacements onNavigate={navigate} />;
         case 'tp-opportunities':
-          return <TPOpportunities onViewCandidates={handleViewCandidateRanking} />;
+          return <TPOpportunities onViewCandidates={handleViewCandidateRanking} onNavigate={navigate} />;
         case 'tp-candidate-ranking':
-          return <TPCandidateRanking initialJobId={rankingJobId} />;
+          return <TPCandidateRanking initialJobId={rankingJobId} onNavigate={navigate} />;
         case 'tp-unmatched':
-          return <TPUnmatchedStudents />;
+          return <TPUnmatchedStudents onNavigate={navigate} />;
         case 'tp-learning':
-          return <TPLearningSkills />;
+          return <TPLearningSkills onNavigate={navigate} />;
         case 'tp-analytics':
-          return <TPAnalytics />;
-        case 'tp-reports':
-          return <TPReports />;
-        case 'tp-communications':
-          return <TPCommunications />;
+          return <TPAnalytics onNavigate={navigate} />;
         case 'tp-settings':
-          return <TPSettings />;
+          return <TPSettings onNavigate={navigate} />;
         case 'agentops':
           return <AgentOpsLogs />;
         default:
-          return <TPDashboard onNavigate={setCurrentView} />;
+          return <TPDashboard onNavigate={navigate} />;
       }
     }
 
@@ -223,7 +291,7 @@ function MainApp() {
       {/* Role-Specific Sidebar */}
       <Sidebar 
         currentView={currentView} 
-        onNavigate={setCurrentView} 
+        onNavigate={navigate} 
         isCollapsed={isSidebarCollapsed}
         onToggleCollapse={toggleSidebar}
       />

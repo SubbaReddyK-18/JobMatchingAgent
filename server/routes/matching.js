@@ -104,6 +104,7 @@ router.get('/student-matches', authenticateToken, async (req, res) => {
                 { label: 'Good Fit (60-80%)', count: goodFitCount, color: '#8B5CF6', percentage: Math.round((goodFitCount / (allEligible.length || 1)) * 100) },
                 { label: 'Emerging Fit (40-60%)', count: emergingFitCount, color: '#A855F7', percentage: Math.round((emergingFitCount / (allEligible.length || 1)) * 100) }
             ],
+            matches: evaluatedMatches,
             recommended,
             all_eligible: allEligible,
             closing_soon: closingSoon

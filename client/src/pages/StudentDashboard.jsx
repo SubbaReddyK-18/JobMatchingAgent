@@ -48,13 +48,23 @@ export default function StudentDashboard({ onNavigate, onSelectJob }) {
   const readinessScore = data?.profile?.readiness?.overall_readiness_score || 82;
   const counts = data?.matches?.counts || { total_opportunities: 18, high_fit: 6, good_fit: 8, emerging_fit: 4 };
 
+  const now = new Date();
+  const currentHours = now.getHours();
+  const timeGreeting = currentHours < 12 ? 'Good morning' : currentHours < 17 ? 'Good afternoon' : 'Good evening';
+  const displayDateStr = now.toLocaleDateString('en-US', {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  });
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Greeting Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800, color: '#0F172A', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            Good evening, {user?.full_name?.split(' ')[0] || 'Subbu'}! 👋
+            {timeGreeting}, {user?.full_name?.split(' ')[0] || 'Subbu'}! 👋
           </h1>
           <p style={{ fontSize: '0.875rem', color: '#64748B', marginTop: '4px' }}>
             Here's your placement journey and Agent 50 career intelligence at a glance.
@@ -73,7 +83,7 @@ export default function StudentDashboard({ onNavigate, onSelectJob }) {
         }}>
           <Calendar size={16} color="#4F46E5" />
           <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '0.78125rem', fontWeight: 700, color: '#0F172A' }}>Sun, 13 Sep 2026</div>
+            <div style={{ fontSize: '0.78125rem', fontWeight: 700, color: '#0F172A' }}>{displayDateStr}</div>
             <div style={{ fontSize: '0.6875rem', color: '#10B981', fontWeight: 600 }}>Make progress today!</div>
           </div>
         </div>
@@ -308,7 +318,7 @@ export default function StudentDashboard({ onNavigate, onSelectJob }) {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', backgroundColor: '#F8FAFC', borderRadius: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" alt="Google" style={{ height: '14px' }} />
+                <img src="/logos/google.svg" alt="Google" style={{ height: '20px', width: '20px' }} />
                 <div>
                   <div style={{ fontSize: '0.8125rem', fontWeight: 700 }}>Google (SWE)</div>
                   <div style={{ fontSize: '0.6875rem', color: '#64748B' }}>14 Sep 2026</div>
@@ -319,7 +329,7 @@ export default function StudentDashboard({ onNavigate, onSelectJob }) {
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', backgroundColor: '#F8FAFC', borderRadius: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <img src="https://upload.wikimedia.org/wikipedia/commons/9/96/Microsoft_logo_%282012%29.svg" alt="Microsoft" style={{ height: '14px' }} />
+                <img src="/logos/microsoft.svg" alt="Microsoft" style={{ height: '20px', width: '20px' }} />
                 <div>
                   <div style={{ fontSize: '0.8125rem', fontWeight: 700 }}>Microsoft (SDE)</div>
                   <div style={{ fontSize: '0.6875rem', color: '#64748B' }}>16 Sep 2026</div>
@@ -330,7 +340,7 @@ export default function StudentDashboard({ onNavigate, onSelectJob }) {
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', backgroundColor: '#F8FAFC', borderRadius: '8px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <img src="https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg" alt="Amazon" style={{ height: '14px' }} />
+                <img src="/logos/amazon.svg" alt="Amazon" style={{ height: '20px', width: '20px' }} />
                 <div>
                   <div style={{ fontSize: '0.8125rem', fontWeight: 700 }}>Amazon (Data Analyst)</div>
                   <div style={{ fontSize: '0.6875rem', color: '#64748B' }}>18 Sep 2026</div>

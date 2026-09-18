@@ -60,14 +60,14 @@ export default function TPDashboard({ onNavigate, onSelectStudent }) {
   };
 
   const logos = [
-    { name: 'Google', logo: 'https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg' },
-    { name: 'Microsoft', logo: 'https://upload.wikimedia.org/wikipedia/commons/9/96/Microsoft_logo_%282012%29.svg' },
-    { name: 'Amazon', logo: 'https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg' },
-    { name: 'Infosys', logo: 'https://upload.wikimedia.org/wikipedia/commons/9/95/Infosys_logo.svg' },
-    { name: 'TCS', logo: '/tcs-logo.webp' },
-    { name: 'Accenture', logo: 'https://upload.wikimedia.org/wikipedia/commons/c/cd/Accenture.svg' },
-    { name: 'Adobe', logo: 'https://upload.wikimedia.org/wikipedia/commons/8/8d/Adobe_Corporate_Logo.png' },
-    { name: 'NVIDIA', logo: 'https://upload.wikimedia.org/wikipedia/commons/2/21/Nvidia_logo.svg' }
+    { name: 'Google', logo: '/logos/google.svg' },
+    { name: 'Microsoft', logo: '/logos/microsoft.svg' },
+    { name: 'Amazon', logo: '/logos/amazon.svg' },
+    { name: 'Infosys', logo: '/logos/infosys.svg' },
+    { name: 'TCS', logo: '/logos/tcs.svg' },
+    { name: 'Adobe', logo: '/logos/adobe.svg' },
+    { name: 'Deloitte', logo: '/logos/deloitte.svg' },
+    { name: 'Cisco', logo: '/logos/cisco.svg' }
   ];
 
   return (

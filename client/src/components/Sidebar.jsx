@@ -41,13 +41,10 @@ export default function Sidebar({ activePage, currentView, onNavigate, isCollaps
     { id: 'tp-dashboard', label: 'Dashboard', icon: Home },
     { id: 'tp-students', label: 'Students', icon: Users },
     { id: 'tp-placements', label: 'Placements', icon: GraduationCap },
-    { id: 'tp-learning', label: 'Learning & Skills', icon: BookOpen },
     { id: 'tp-opportunities', label: 'Events & Opportunities', icon: Briefcase },
-    { id: 'tp-candidate-ranking', label: 'Candidate Matching', icon: Target },
+    { id: 'tp-learning', label: 'Learning & Skills', icon: BookOpen },
     { id: 'tp-unmatched', label: 'Unmatched Intelligence', icon: Sparkles },
     { id: 'tp-analytics', label: 'Analytics', icon: BarChart3 },
-    { id: 'tp-reports', label: 'Reports', icon: FileText },
-    { id: 'tp-communications', label: 'Communications', icon: MessageSquare },
     { id: 'tp-settings', label: 'Settings', icon: Settings }
   ];
 
@@ -59,7 +56,7 @@ export default function Sidebar({ activePage, currentView, onNavigate, isCollaps
     { id: 'tp-opportunities', label: 'Opportunities', icon: Briefcase },
     { id: 'tp-learning', label: 'Learning & Skills', icon: BookOpen },
     { id: 'tp-analytics', label: 'Analytics', icon: BarChart3 },
-    { id: 'tp-reports', label: 'Reports', icon: FileText }
+    { id: 'tp-settings', label: 'Settings', icon: Settings }
   ];
 
   const navItems = role === 'STUDENT' ? studentNav : role === 'HOD' ? hodNav : tpNav;

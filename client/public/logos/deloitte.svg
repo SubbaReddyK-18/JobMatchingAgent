@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48px" height="48px">
+  <rect width="48" height="48" rx="8" fill="#000000"/>
+  <text x="20" y="29" fill="#FFFFFF" font-size="12" font-weight="900" font-family="sans-serif" text-anchor="middle">Deloitte</text>
+  <circle cx="39" cy="27" r="2.5" fill="#86bc25"/>
+</svg>

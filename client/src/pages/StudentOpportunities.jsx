@@ -66,9 +66,20 @@ export default function StudentOpportunities({ onViewJob, onApplyJob, onPrepareR
         const res = await fetch('/api/matching/student-matches', { headers });
         if (res.ok) {
           const data = await res.json();
-          if (data.matches && Array.isArray(data.matches)) {
-            setOpportunities(data.matches);
-          }
+          const items = data.matches || data.all_eligible || data.recommended || [];
+          const flattened = items.map(m => {
+            const j = m.job || m;
+            return {
+              ...j,
+              is_eligible: m.is_eligible !== undefined ? m.is_eligible : (j.is_eligible !== undefined ? j.is_eligible : true),
+              overall_match: m.overall_match || j.overall_match || 85,
+              eligibility_reasons: m.eligibility_reasons || j.eligibility_reasons || [],
+              why_strong_candidate: m.why_strong_candidate || j.why_strong_candidate || [],
+              preparation_gaps: m.preparation_gaps || j.preparation_gaps || [],
+              deadline: j.deadline_date || j.deadline
+            };
+          });
+          setOpportunities(flattened);
         }
 
         // Fetch existing applications to sync applied status

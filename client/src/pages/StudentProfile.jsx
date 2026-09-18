@@ -221,7 +221,7 @@ export default function StudentProfile({ onNavigate }) {
                 )}
                 {student.github_url && (
                   <a href={student.github_url} target="_blank" rel="noreferrer" style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#334155', textDecoration: 'none', fontWeight: 600 }}>
-                    <Github size={13} /> GitHub
+                    <FolderGit2 size={13} /> GitHub
                   </a>
                 )}
               </div>

@@ -17,15 +17,21 @@ import {
 import RadialGauge from '../components/RadialGauge';
 import { useAuth } from '../context/AuthContext';
 
-export default function TPCandidateRanking({ defaultJobId = 'job_google_swe' }) {
+export default function TPCandidateRanking({ defaultJobId = 'job_google_swe', initialJobId, onNavigate }) {
   const { user } = useAuth();
   const isHOD = user?.role === 'HOD';
 
   const [jobs, setJobs] = useState([]);
-  const [selectedJobId, setSelectedJobId] = useState(defaultJobId);
+  const [selectedJobId, setSelectedJobId] = useState(initialJobId || defaultJobId || 'job_google_swe');
   const [candidateData, setCandidateData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [shortlistedMap, setShortlistedMap] = useState({});
+
+  useEffect(() => {
+    if (initialJobId) {
+      setSelectedJobId(initialJobId);
+    }
+  }, [initialJobId]);
 
   useEffect(() => {
     async function loadJobsList() {
