@@ -31,3 +31,10 @@ yarn-error.log*
 Thumbs.db
 .vscode/
 .idea/
+
+# Large reference assets, PDF docs, and raw UI images
+*.pdf
+original images/
+extracted_ui_images/
+del logo.png
+tcs logo.webp
