@@ -12,7 +12,8 @@ import {
   Calendar,
   Lock,
   Eye,
-  SlidersHorizontal
+  SlidersHorizontal,
+  RotateCcw
 } from 'lucide-react';
 import RadialGauge from '../components/RadialGauge';
 import { useAuth } from '../context/AuthContext';
@@ -74,9 +75,9 @@ export default function TPCandidateRanking({ defaultJobId = 'job_google_swe', in
     }
   }, [selectedJobId]);
 
-  const handleShortlist = (studentId) => {
+  const handleToggleShortlist = (studentId) => {
     if (isHOD) return;
-    setShortlistedMap(prev => ({ ...prev, [studentId]: true }));
+    setShortlistedMap(prev => ({ ...prev, [studentId]: !prev[studentId] }));
   };
 
   const candidates = candidateData?.candidates || [];
@@ -152,7 +153,7 @@ export default function TPCandidateRanking({ defaultJobId = 'job_google_swe', in
         <div className="card" style={{ padding: '16px 20px' }}>
           <div style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600 }}>Top Candidate Match Score</div>
           <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#4F46E5', marginTop: '4px' }}>
-            {candidates[0]?.overall_match || 94}%
+            {candidates[0]?.overall_match ?? 0}%
           </div>
         </div>
       </div>
@@ -263,13 +264,33 @@ export default function TPCandidateRanking({ defaultJobId = 'job_google_swe', in
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '8px', minWidth: '120px' }}>
                   {!isHOD ? (
                     <button
-                      onClick={() => handleShortlist(std.id)}
-                      disabled={isShortlisted || !cand.is_eligible}
-                      className={`btn btn-sm ${isShortlisted ? 'btn-secondary' : 'btn-primary'}`}
-                      style={{ width: '100%' }}
+                      onClick={() => handleToggleShortlist(std.id)}
+                      disabled={!cand.is_eligible}
+                      className={`btn btn-sm ${isShortlisted ? 'btn-outline' : 'btn-primary'}`}
+                      style={{
+                        width: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        borderColor: isShortlisted ? '#10B981' : undefined,
+                        color: isShortlisted ? '#047857' : undefined,
+                        backgroundColor: isShortlisted ? '#ECFDF5' : undefined,
+                        fontWeight: 700
+                      }}
+                      title={isShortlisted ? 'Click to undo shortlist' : 'Shortlist candidate'}
                     >
-                      <UserCheck size={14} />
-                      <span>{isShortlisted ? 'Shortlisted ✓' : 'Shortlist Candidate'}</span>
+                      {isShortlisted ? (
+                        <>
+                          <CheckCircle2 size={14} color="#10B981" />
+                          <span>Shortlisted (Undo)</span>
+                        </>
+                      ) : (
+                        <>
+                          <UserCheck size={14} />
+                          <span>Shortlist Candidate</span>
+                        </>
+                      )}
                     </button>
                   ) : (
                     <span style={{ fontSize: '0.75rem', color: '#64748B', fontWeight: 600 }}>Read Only</span>

@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { Sparkles, ArrowRight, Building2, Users, GraduationCap, ShieldCheck, Play } from 'lucide-react';
+import { Sparkles, ArrowRight, Building2, Users, GraduationCap, ShieldCheck, Play, CheckCircle2, Target, Bot, BarChart3, X } from 'lucide-react';
 
 export default function LandingPage({ onGetStarted, onSelectPortal, onOpenLogin }) {
   const [activeNav, setActiveNav] = useState('home');
+  const [showOverviewModal, setShowOverviewModal] = useState(false);
 
   const scrollToSection = (sectionId) => {
     setActiveNav(sectionId);
@@ -56,21 +57,18 @@ export default function LandingPage({ onGetStarted, onSelectPortal, onOpenLogin 
           style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
         >
           <div style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
+            width: '42px',
+            height: '42px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            boxShadow: '0 4px 12px rgba(79, 70, 229, 0.35)'
+            justifyContent: 'center'
           }}>
-            <Sparkles size={18} />
+            <img src="/jobmatch-symbol.png" alt="JobMatch AI" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
           <div>
-            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em' }}>
-              JobMatch AI
+            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <span>JobMatch</span>
+              <span style={{ color: '#F43F5E', fontWeight: 900 }}>AI</span>
             </span>
             <span style={{ fontSize: '0.75rem', color: '#64748B', marginLeft: '8px', borderLeft: '1px solid #CBD5E1', paddingLeft: '8px' }}>
               Intelligence Behind Every Placement
@@ -181,10 +179,7 @@ export default function LandingPage({ onGetStarted, onSelectPortal, onOpenLogin 
             </button>
 
             <button
-              onClick={() => {
-                if (onGetStarted) onGetStarted();
-                else if (onSelectPortal) onSelectPortal();
-              }}
+              onClick={() => setShowOverviewModal(true)}
               className="btn btn-outline btn-lg"
               style={{ borderRadius: '999px' }}
             >
@@ -346,6 +341,97 @@ export default function LandingPage({ onGetStarted, onSelectPortal, onOpenLogin 
           ))}
         </div>
       </section>
+
+      {/* Interactive Product Overview Modal */}
+      {showOverviewModal && (
+        <div className="modal-overlay" onClick={() => setShowOverviewModal(false)}>
+          <div className="modal-content" style={{ maxWidth: '780px', maxHeight: '90vh', overflowY: 'auto' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '1px solid #F1F5F9', paddingBottom: '16px', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ width: '42px', height: '42px', borderRadius: '12px', background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                  <Sparkles size={22} />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: '1.375rem', fontWeight: 800, color: '#0F172A' }}>JobMatch AI & Agent 50 Overview</h3>
+                  <p style={{ fontSize: '0.8125rem', color: '#64748B' }}>How intelligent multi-factor matching transforms campus recruitment</p>
+                </div>
+              </div>
+              <button onClick={() => setShowOverviewModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '6px' }}>
+                <X size={20} color="#64748B" />
+              </button>
+            </div>
+
+            {/* 4 Feature Highlights Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
+              <div style={{ padding: '18px', borderRadius: '16px', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#EEF2FF', color: '#4F46E5', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Target size={16} />
+                  </div>
+                  <h4 style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#0F172A' }}>Agent 50 Matching Engine</h4>
+                </div>
+                <p style={{ fontSize: '0.78125rem', color: '#64748B', lineHeight: 1.5 }}>
+                  Calculates 5-factor deterministic matching: Skills, Project Relevance, Role Fit, Location Preference, and Placement Readiness.
+                </p>
+              </div>
+
+              <div style={{ padding: '18px', borderRadius: '16px', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#F5F3FF', color: '#7C3AED', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Bot size={16} />
+                  </div>
+                  <h4 style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#0F172A' }}>SantraAI Assistant</h4>
+                </div>
+                <p style={{ fontSize: '0.78125rem', color: '#64748B', lineHeight: 1.5 }}>
+                  Role-grounded placement AI for students, T&P officers, and HODs to analyze skill gaps, candidate readiness, and schedules.
+                </p>
+              </div>
+
+              <div style={{ padding: '18px', borderRadius: '16px', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#ECFDF5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Sparkles size={16} />
+                  </div>
+                  <h4 style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#0F172A' }}>AI JD Structuring</h4>
+                </div>
+                <p style={{ fontSize: '0.78125rem', color: '#64748B', lineHeight: 1.5 }}>
+                  Paste raw company emails or JDs and AI extracts company name, role, salary, branches, and required technical skills instantly.
+                </p>
+              </div>
+
+              <div style={{ padding: '18px', borderRadius: '16px', backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                  <div style={{ width: '32px', height: '32px', borderRadius: '8px', backgroundColor: '#FEF3C7', color: '#D97706', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <BarChart3 size={16} />
+                  </div>
+                  <h4 style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#0F172A' }}>Placement & HOD Analytics</h4>
+                </div>
+                <p style={{ fontSize: '0.78125rem', color: '#64748B', lineHeight: 1.5 }}>
+                  Real-time visibility into department placement rates, student readiness cohorts, and skill remediation pathways.
+                </p>
+              </div>
+            </div>
+
+            {/* Bottom Actions */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: '1px solid #F1F5F9', paddingTop: '16px' }}>
+              <button onClick={() => setShowOverviewModal(false)} className="btn btn-outline">
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  setShowOverviewModal(false);
+                  if (onGetStarted) onGetStarted();
+                  else if (onSelectPortal) onSelectPortal();
+                }}
+                className="btn btn-primary"
+              >
+                <span>Choose Portal & Get Started</span>
+                <ArrowRight size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

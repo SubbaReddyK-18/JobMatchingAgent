@@ -194,7 +194,6 @@ function MainApp() {
   };
 
   const handleViewCandidateRanking = (jobId) => {
-    if (isHOD) return; // HOD cannot access candidate ranking operations
     setRankingJobId(jobId);
     navigate('tp-candidate-ranking');
   };

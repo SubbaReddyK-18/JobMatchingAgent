@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-export default function TPOpportunities({ onNavigate, onSelectJobForCandidates }) {
+export default function TPOpportunities({ onNavigate, onViewCandidates, onSelectJobForCandidates }) {
   const { user } = useAuth();
   const isHOD = user?.role === 'HOD';
 
@@ -31,18 +31,18 @@ export default function TPOpportunities({ onNavigate, onSelectJobForCandidates }
 
   // Form Fields
   const [formData, setFormData] = useState({
-    company_name: 'Google',
-    title: 'Software Engineer',
+    company_name: '',
+    title: '',
     role_type: 'Full-time',
     work_mode: 'Hybrid',
-    location: 'Bengaluru, India',
-    ctc_min: 30,
-    ctc_max: 45,
-    min_cgpa: 8.0,
+    location: '',
+    ctc_min: '',
+    ctc_max: '',
+    min_cgpa: 7.0,
     eligible_branches: ['CSE', 'ISE', 'ECE'],
-    required_skills: ['Python', 'Data Structures', 'Algorithms', 'SQL', 'Docker'],
-    preferred_skills: ['Cloud (GCP)', 'Machine Learning'],
-    description: 'Build high-scale distributed systems impacting millions of users.'
+    required_skills: ['Python', 'Data Structures', 'Algorithms', 'SQL'],
+    preferred_skills: ['Docker', 'Cloud (AWS)'],
+    description: ''
   });
   const [submitting, setSubmitting] = useState(false);
   const [feedback, setFeedback] = useState('');
@@ -68,7 +68,7 @@ export default function TPOpportunities({ onNavigate, onSelectJobForCandidates }
   }, []);
 
   const handleAnalyzeJD = async () => {
-    if (!rawJdText) {
+    if (!rawJdText || !rawJdText.trim()) {
       alert('Please paste a job description text to analyze.');
       return;
     }
@@ -90,17 +90,17 @@ export default function TPOpportunities({ onNavigate, onSelectJobForCandidates }
         const data = await res.json();
         const s = data.structured;
         setFormData({
-          company_name: formData.company_name,
-          title: s.title,
-          role_type: s.role_type,
-          work_mode: s.work_mode,
-          location: s.location,
-          ctc_min: s.ctc_min,
-          ctc_max: s.ctc_max,
-          min_cgpa: s.min_cgpa,
-          eligible_branches: s.eligible_branches,
-          required_skills: s.required_skills,
-          preferred_skills: s.preferred_skills,
+          company_name: s.company_name || formData.company_name || '',
+          title: s.title || 'Software Development Engineer',
+          role_type: s.role_type || 'Full-time',
+          work_mode: s.work_mode || 'Hybrid',
+          location: s.location || 'Bengaluru, India',
+          ctc_min: (s.ctc_min !== null && s.ctc_min !== undefined) ? s.ctc_min : '',
+          ctc_max: (s.ctc_max !== null && s.ctc_max !== undefined) ? s.ctc_max : '',
+          min_cgpa: s.min_cgpa !== undefined ? s.min_cgpa : 7.0,
+          eligible_branches: Array.isArray(s.eligible_branches) && s.eligible_branches.length > 0 ? s.eligible_branches : ['CSE', 'ISE', 'ECE'],
+          required_skills: Array.isArray(s.required_skills) && s.required_skills.length > 0 ? s.required_skills : ['Python', 'Java', 'Data Structures', 'Algorithms'],
+          preferred_skills: Array.isArray(s.preferred_skills) ? s.preferred_skills : ['Docker', 'Cloud (AWS)'],
           description: rawJdText
         });
         setAnalyzedSuccess(true);
@@ -290,11 +290,18 @@ export default function TPOpportunities({ onNavigate, onSelectJobForCandidates }
               </div>
 
               <button
-                onClick={() => onSelectJobForCandidates(job.id)}
+                onClick={() => {
+                  const handler = onViewCandidates || onSelectJobForCandidates;
+                  if (typeof handler === 'function') {
+                    handler(job.id);
+                  } else if (typeof onNavigate === 'function') {
+                    onNavigate('tp-candidate-ranking');
+                  }
+                }}
                 className="btn btn-primary btn-sm"
               >
                 <Sparkles size={13} />
-                <span>Rank Candidates (Agent 50)</span>
+                <span>Rank Candidates</span>
               </button>
             </div>
           </div>
@@ -395,9 +402,9 @@ export default function TPOpportunities({ onNavigate, onSelectJobForCandidates }
                   <input
                     type="number"
                     step="0.5"
-                    required
+                    placeholder="e.g. 18 (or specify)"
                     value={formData.ctc_min}
-                    onChange={(e) => setFormData({ ...formData, ctc_min: parseFloat(e.target.value) })}
+                    onChange={(e) => setFormData({ ...formData, ctc_min: e.target.value === '' ? '' : parseFloat(e.target.value) })}
                     className="form-input"
                   />
                 </div>
@@ -407,9 +414,9 @@ export default function TPOpportunities({ onNavigate, onSelectJobForCandidates }
                   <input
                     type="number"
                     step="0.5"
-                    required
+                    placeholder="e.g. 32 (or specify)"
                     value={formData.ctc_max}
-                    onChange={(e) => setFormData({ ...formData, ctc_max: parseFloat(e.target.value) })}
+                    onChange={(e) => setFormData({ ...formData, ctc_max: e.target.value === '' ? '' : parseFloat(e.target.value) })}
                     className="form-input"
                   />
                 </div>

@@ -41,11 +41,7 @@ export default function Sidebar({ activePage, currentView, onNavigate, isCollaps
     { id: 'tp-dashboard', label: 'Dashboard', icon: Home },
     { id: 'tp-students', label: 'Students', icon: Users },
     { id: 'tp-placements', label: 'Placements', icon: GraduationCap },
-    { id: 'tp-opportunities', label: 'Events & Opportunities', icon: Briefcase },
-    { id: 'tp-learning', label: 'Learning & Skills', icon: BookOpen },
-    { id: 'tp-unmatched', label: 'Unmatched Intelligence', icon: Sparkles },
-    { id: 'tp-analytics', label: 'Analytics', icon: BarChart3 },
-    { id: 'tp-settings', label: 'Settings', icon: Settings }
+    { id: 'tp-opportunities', label: 'Events & Opportunities', icon: Briefcase }
   ];
 
   // 3. Head of Department Navigation (Strictly Read-Only institutional intelligence)
@@ -53,10 +49,7 @@ export default function Sidebar({ activePage, currentView, onNavigate, isCollaps
     { id: 'tp-dashboard', label: 'Overview', icon: Home },
     { id: 'tp-students', label: 'Students', icon: Users },
     { id: 'tp-placements', label: 'Placements', icon: GraduationCap },
-    { id: 'tp-opportunities', label: 'Opportunities', icon: Briefcase },
-    { id: 'tp-learning', label: 'Learning & Skills', icon: BookOpen },
-    { id: 'tp-analytics', label: 'Analytics', icon: BarChart3 },
-    { id: 'tp-settings', label: 'Settings', icon: Settings }
+    { id: 'tp-opportunities', label: 'Opportunities', icon: Briefcase }
   ];
 
   const navItems = role === 'STUDENT' ? studentNav : role === 'HOD' ? hodNav : tpNav;
@@ -78,13 +71,14 @@ export default function Sidebar({ activePage, currentView, onNavigate, isCollaps
       {/* Brand Header */}
       <div className="sidebar-header">
         <div className="sidebar-brand-wrapper">
-          <div className="sidebar-logo-icon">
-            <Sparkles size={18} />
+          <div className="sidebar-logo-icon" style={{ padding: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'transparent' }}>
+            <img src="/jobmatch-symbol.png" alt="JobMatch AI" style={{ width: '34px', height: '34px', objectFit: 'contain' }} />
           </div>
           {!isCollapsed && (
             <div className="sidebar-brand-text">
-              <h2 className="sidebar-title">
-                JobMatch AI
+              <h2 className="sidebar-title" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '1.0625rem', fontWeight: 800 }}>
+                <span>JobMatch</span>
+                <span style={{ color: '#F43F5E', fontWeight: 900 }}>AI</span>
               </h2>
               <div className="sidebar-subtitle">
                 <span className="sidebar-agent-badge">

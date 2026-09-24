@@ -72,7 +72,7 @@ export default function StudentOpportunities({ onViewJob, onApplyJob, onPrepareR
             return {
               ...j,
               is_eligible: m.is_eligible !== undefined ? m.is_eligible : (j.is_eligible !== undefined ? j.is_eligible : true),
-              overall_match: m.overall_match || j.overall_match || 85,
+              overall_match: m.overall_match ?? j.overall_match ?? 0,
               eligibility_reasons: m.eligibility_reasons || j.eligibility_reasons || [],
               why_strong_candidate: m.why_strong_candidate || j.why_strong_candidate || [],
               preparation_gaps: m.preparation_gaps || j.preparation_gaps || [],
@@ -500,7 +500,7 @@ export default function StudentOpportunities({ onViewJob, onApplyJob, onPrepareR
           {filteredOpportunities.map((job) => {
             const isBookmarked = bookmarkedIds.includes(job.id);
             const isApplied = appliedJobIds.includes(job.id);
-            const matchScore = job.overall_match || 85;
+            const matchScore = job.overall_match ?? 0;
             const isEligible = job.is_eligible !== false;
 
             return (

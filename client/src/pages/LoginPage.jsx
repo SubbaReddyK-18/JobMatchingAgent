@@ -108,19 +108,20 @@ export default function LoginPage({ initialRole = 'STUDENT', onLoginSuccess, onB
             style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
           >
             <div style={{
-              width: '38px',
-              height: '38px',
-              borderRadius: '10px',
-              background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
+              width: '46px',
+              height: '46px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center'
             }}>
-              <Sparkles size={20} />
+              <img src="/jobmatch-symbol.png" alt="JobMatch AI" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
             </div>
             <div>
-              <div style={{ fontSize: '1.25rem', fontWeight: 800 }}>JobMatch AI</div>
-              <div style={{ fontSize: '0.6875rem', color: '#94A3B8' }}>Connect • Talent • Build • Futures</div>
+              <div style={{ fontSize: '1.3125rem', fontWeight: 800, letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span>JobMatch</span>
+                <span style={{ color: '#F43F5E', fontWeight: 900 }}>AI</span>
+              </div>
+              <div style={{ fontSize: '0.6875rem', color: '#94A3B8' }}>Connect • Match • Build • Futures</div>
             </div>
           </div>
         </div>
@@ -231,67 +232,39 @@ export default function LoginPage({ initialRole = 'STUDENT', onLoginSuccess, onB
             </p>
           </div>
 
-          {/* 3 Role Selection Tabs */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '24px' }}>
-            <button
-              type="button"
-              onClick={() => handleRoleTab('STUDENT')}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                padding: '12px 6px',
-                borderRadius: '12px',
-                border: selectedRole === 'STUDENT' ? '2px solid #4F46E5' : '1px solid #E2E8F0',
-                backgroundColor: selectedRole === 'STUDENT' ? '#EEF2FF' : '#FFFFFF',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              <GraduationCap size={18} color={selectedRole === 'STUDENT' ? '#4F46E5' : '#64748B'} />
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: selectedRole === 'STUDENT' ? '#4F46E5' : '#0F172A', marginTop: '4px' }}>Student</span>
-              <span style={{ fontSize: '0.625rem', color: '#64748B', textAlign: 'center', marginTop: '2px' }}>USN Login</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleRoleTab('T_AND_P')}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                padding: '12px 6px',
-                borderRadius: '12px',
-                border: selectedRole === 'T_AND_P' ? '2px solid #7C3AED' : '1px solid #E2E8F0',
-                backgroundColor: selectedRole === 'T_AND_P' ? '#F5F3FF' : '#FFFFFF',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              <Building2 size={18} color={selectedRole === 'T_AND_P' ? '#7C3AED' : '#64748B'} />
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: selectedRole === 'T_AND_P' ? '#7C3AED' : '#0F172A', marginTop: '4px' }}>T&P Cell</span>
-              <span style={{ fontSize: '0.625rem', color: '#64748B', textAlign: 'center', marginTop: '2px' }}>Emp ID</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleRoleTab('HOD')}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                padding: '12px 6px',
-                borderRadius: '12px',
-                border: selectedRole === 'HOD' ? '2px solid #059669' : '1px solid #E2E8F0',
-                backgroundColor: selectedRole === 'HOD' ? '#ECFDF5' : '#FFFFFF',
-                cursor: 'pointer',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              <Shield size={18} color={selectedRole === 'HOD' ? '#059669' : '#64748B'} />
-              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: selectedRole === 'HOD' ? '#059669' : '#0F172A', marginTop: '4px' }}>HOD</span>
-              <span style={{ fontSize: '0.625rem', color: '#64748B', textAlign: 'center', marginTop: '2px' }}>Faculty ID</span>
-            </button>
+          {/* Active Portal Banner */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '14px',
+            padding: '14px 16px',
+            borderRadius: '16px',
+            backgroundColor: currentRole.accentBg,
+            border: `1.5px solid ${currentRole.color}30`,
+            marginBottom: '24px'
+          }}>
+            <div style={{
+              width: '42px',
+              height: '42px',
+              borderRadius: '12px',
+              backgroundColor: currentRole.color,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: '#FFFFFF',
+              flexShrink: 0,
+              boxShadow: `0 4px 12px ${currentRole.color}35`
+            }}>
+              {selectedRole === 'STUDENT' ? <GraduationCap size={22} /> : selectedRole === 'T_AND_P' ? <Building2 size={22} /> : <Shield size={22} />}
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: '0.6875rem', fontWeight: 800, color: currentRole.color, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                {selectedRole === 'STUDENT' ? 'Student Portal' : selectedRole === 'T_AND_P' ? 'Training & Placement Portal' : 'Department Intelligence Portal'}
+              </div>
+              <div style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#0F172A', marginTop: '1px' }}>
+                {selectedRole === 'STUDENT' ? 'Student Login' : selectedRole === 'T_AND_P' ? 'T&P Officer Login' : 'HOD Login'}
+              </div>
+            </div>
           </div>
 
           {error && (

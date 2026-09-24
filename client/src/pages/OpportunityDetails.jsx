@@ -15,7 +15,8 @@ import {
   Layers,
   Code,
   FileCode,
-  Check
+  Check,
+  BookOpen
 } from 'lucide-react';
 import RadialGauge from '../components/RadialGauge';
 import confetti from 'canvas-confetti';
@@ -270,39 +271,41 @@ export default function OpportunityDetails({ jobId, onBack, onNavigate, onPrepar
         <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr 1fr 1fr', gap: '20px', alignItems: 'center', borderBottom: '1px solid #F1F5F9', paddingBottom: '24px' }}>
           {/* Main Overall Match */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderRight: '1px solid #F1F5F9', paddingRight: '16px' }}>
-            <RadialGauge value={match.overall_match || 94} size={110} strokeWidth={10} color="#10B981" />
+            <RadialGauge value={match.overall_match ?? 0} size={110} strokeWidth={10} color={match.overall_match >= 80 ? '#10B981' : match.overall_match >= 60 ? '#6366F1' : '#F59E0B'} />
             <div style={{ marginTop: '8px', textAlign: 'center' }}>
-              <span className="badge badge-green" style={{ fontSize: '0.6875rem' }}>★ Top Match</span>
+              <span className={`badge ${match.overall_match >= 80 ? 'badge-green' : match.overall_match >= 60 ? 'badge-blue' : 'badge-yellow'}`} style={{ fontSize: '0.6875rem' }}>
+                {match.overall_match >= 80 ? '★ High Fit' : match.overall_match >= 60 ? '✓ Good Fit' : '⚡ Emerging Fit'}
+              </span>
               <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: '#0F172A', marginTop: '4px' }}>Overall Match</div>
             </div>
           </div>
 
           {/* Skill Match */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-            <RadialGauge value={compScores.skill_match || 92} size={80} strokeWidth={8} color="#06B6D4" />
+            <RadialGauge value={compScores.skill_match ?? 0} size={80} strokeWidth={8} color="#06B6D4" />
             <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: '#0F172A', marginTop: '8px' }}>Skill Match</div>
-            <div style={{ fontSize: '0.6875rem', color: '#64748B', marginTop: '2px', maxWidth: '120px' }}>Your skills align with required stack</div>
+            <div style={{ fontSize: '0.6875rem', color: '#64748B', marginTop: '2px', maxWidth: '120px' }}>Alignment with required stack</div>
           </div>
 
           {/* Project Relevance */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-            <RadialGauge value={compScores.project_relevance || 96} size={80} strokeWidth={8} color="#6366F1" />
+            <RadialGauge value={compScores.project_relevance ?? 0} size={80} strokeWidth={8} color="#6366F1" />
             <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: '#0F172A', marginTop: '8px' }}>Project Relevance</div>
-            <div style={{ fontSize: '0.6875rem', color: '#64748B', marginTop: '2px', maxWidth: '120px' }}>Your projects are highly relevant</div>
+            <div style={{ fontSize: '0.6875rem', color: '#64748B', marginTop: '2px', maxWidth: '120px' }}>Hands-on stack demonstrated</div>
           </div>
 
           {/* Role / Interest Fit */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-            <RadialGauge value={compScores.role_interest_fit || 90} size={80} strokeWidth={8} color="#3B82F6" />
+            <RadialGauge value={compScores.role_interest_fit ?? 0} size={80} strokeWidth={8} color="#3B82F6" />
             <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: '#0F172A', marginTop: '8px' }}>Role / Interest Fit</div>
-            <div style={{ fontSize: '0.6875rem', color: '#64748B', marginTop: '2px', maxWidth: '120px' }}>Matches your career goals</div>
+            <div style={{ fontSize: '0.6875rem', color: '#64748B', marginTop: '2px', maxWidth: '120px' }}>Matches your career preferences</div>
           </div>
 
           {/* Location Preference */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-            <RadialGauge value={compScores.location_fit || 100} size={80} strokeWidth={8} color="#F59E0B" />
+            <RadialGauge value={compScores.location_fit ?? 0} size={80} strokeWidth={8} color="#F59E0B" />
             <div style={{ fontSize: '0.8125rem', fontWeight: 800, color: '#0F172A', marginTop: '8px' }}>Location Fit</div>
-            <div style={{ fontSize: '0.6875rem', color: '#64748B', marginTop: '2px', maxWidth: '120px' }}>Matches your preferred city</div>
+            <div style={{ fontSize: '0.6875rem', color: '#64748B', marginTop: '2px', maxWidth: '120px' }}>Location & mobility fit</div>
           </div>
         </div>
 
@@ -320,16 +323,7 @@ export default function OpportunityDetails({ jobId, onBack, onNavigate, onPrepar
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {(match.skill_alignment || [
-                { skill: 'Python', level: 'Excellent', status: 'Strong Match' },
-                { skill: 'Data Structures', level: 'Excellent', status: 'Strong Match' },
-                { skill: 'Algorithms', level: 'Good', status: 'Strong Match' },
-                { skill: 'System Design', level: 'Partial', status: 'Partial Match' },
-                { skill: 'Distributed Systems', level: 'Partial', status: 'Partial Match' },
-                { skill: 'Cloud (GCP)', level: 'Gap', status: 'Gap' },
-                { skill: 'CI/CD', level: 'Gap', status: 'Gap' },
-                { skill: 'SQL', level: 'Excellent', status: 'Strong Match' }
-              ]).map((sk, idx) => (
+              {(match.skill_alignment && match.skill_alignment.length > 0 ? match.skill_alignment : []).map((sk, idx) => (
                 <div key={idx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.78125rem', padding: '4px 0', borderBottom: '1px solid #F8FAFC' }}>
                   <span style={{ fontWeight: 600, color: '#334155' }}>{sk.skill}</span>
                   <span style={{
@@ -337,10 +331,13 @@ export default function OpportunityDetails({ jobId, onBack, onNavigate, onPrepar
                     fontWeight: 700,
                     color: sk.status === 'Strong Match' ? '#10B981' : sk.status === 'Partial Match' ? '#D97706' : '#DC2626'
                   }}>
-                    {sk.level}
+                    {sk.level || sk.status}
                   </span>
                 </div>
               ))}
+              {(!match.skill_alignment || match.skill_alignment.length === 0) && (
+                <div style={{ fontSize: '0.75rem', color: '#94A3B8', fontStyle: 'italic' }}>No specific required skills listed.</div>
+              )}
             </div>
           </div>
 
@@ -351,36 +348,34 @@ export default function OpportunityDetails({ jobId, onBack, onNavigate, onPrepar
             </h4>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '10px 12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#0F172A' }}>E-Commerce Backend System</span>
-                  <Check size={14} color="#10B981" />
+              {(match.relevant_projects && match.relevant_projects.length > 0 ? match.relevant_projects : []).map((proj, pIdx) => {
+                const techList = Array.isArray(proj.tech_stack) ? proj.tech_stack : [];
+                return (
+                  <div key={pIdx} style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '10px 12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#0F172A' }}>{proj.title}</span>
+                      <Check size={14} color="#10B981" />
+                    </div>
+                    {proj.description && (
+                      <p style={{ fontSize: '0.71875rem', color: '#64748B', marginTop: '4px' }}>
+                        {proj.description}
+                      </p>
+                    )}
+                    {techList.length > 0 && (
+                      <div style={{ display: 'flex', gap: '4px', marginTop: '6px', flexWrap: 'wrap' }}>
+                        {techList.slice(0, 5).map((t, tIdx) => (
+                          <span key={tIdx} className="badge badge-gray" style={{ fontSize: '0.625rem' }}>{t}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+              {(!match.relevant_projects || match.relevant_projects.length === 0) && (
+                <div style={{ backgroundColor: '#F8FAFC', border: '1px dashed #CBD5E1', borderRadius: '10px', padding: '12px', textAlign: 'center', fontSize: '0.75rem', color: '#64748B' }}>
+                  No directly matching projects recorded on profile yet.
                 </div>
-                <p style={{ fontSize: '0.71875rem', color: '#64748B', marginTop: '4px' }}>
-                  Built scalable backend with Flask, PostgreSQL & Docker.
-                </p>
-                <div style={{ display: 'flex', gap: '4px', marginTop: '6px', flexWrap: 'wrap' }}>
-                  <span className="badge badge-gray" style={{ fontSize: '0.625rem' }}>Python</span>
-                  <span className="badge badge-gray" style={{ fontSize: '0.625rem' }}>Flask</span>
-                  <span className="badge badge-gray" style={{ fontSize: '0.625rem' }}>PostgreSQL</span>
-                  <span className="badge badge-gray" style={{ fontSize: '0.625rem' }}>Docker</span>
-                </div>
-              </div>
-
-              <div style={{ backgroundColor: '#F8FAFC', border: '1px solid #E2E8F0', borderRadius: '10px', padding: '10px 12px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#0F172A' }}>Real-time Chat Application</span>
-                  <Check size={14} color="#10B981" />
-                </div>
-                <p style={{ fontSize: '0.71875rem', color: '#64748B', marginTop: '4px' }}>
-                  Developed real-time chat app using WebSockets and deployed on AWS.
-                </p>
-                <div style={{ display: 'flex', gap: '4px', marginTop: '6px', flexWrap: 'wrap' }}>
-                  <span className="badge badge-gray" style={{ fontSize: '0.625rem' }}>Node.js</span>
-                  <span className="badge badge-gray" style={{ fontSize: '0.625rem' }}>WebSockets</span>
-                  <span className="badge badge-gray" style={{ fontSize: '0.625rem' }}>AWS</span>
-                </div>
-              </div>
+              )}
             </div>
           </div>
 
@@ -394,31 +389,28 @@ export default function OpportunityDetails({ jobId, onBack, onNavigate, onPrepar
             </p>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div style={{ backgroundColor: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '10px', padding: '10px 12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#92400E' }}>Cloud (GCP)</span>
-                  <span className="badge badge-red" style={{ fontSize: '0.625rem' }}>High Impact</span>
+              {(match.preparation_gaps && match.preparation_gaps.length > 0 ? match.preparation_gaps : []).map((gap, gIdx) => (
+                <div key={gIdx} style={{ backgroundColor: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '10px', padding: '10px 12px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#92400E' }}>{gap.skill}</span>
+                    <span className="badge badge-red" style={{ fontSize: '0.625rem' }}>{gap.impact || 'Gap'}</span>
+                  </div>
+                  <p style={{ fontSize: '0.6875rem', color: '#B45309', marginTop: '4px' }}>
+                    {gap.action || gap.reason}
+                  </p>
                 </div>
-                <p style={{ fontSize: '0.6875rem', color: '#B45309', marginTop: '4px' }}>
-                  Learn GCP fundamentals and deployment workflows.
-                </p>
-              </div>
-
-              <div style={{ backgroundColor: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: '10px', padding: '10px 12px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#92400E' }}>CI/CD Pipelines</span>
-                  <span className="badge badge-red" style={{ fontSize: '0.625rem' }}>High Impact</span>
+              ))}
+              {(!match.preparation_gaps || match.preparation_gaps.length === 0) && (
+                <div style={{ backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '10px', padding: '12px', textAlign: 'center', fontSize: '0.75rem', color: '#065F46', fontWeight: 600 }}>
+                  ✓ All required skills matched! No major preparation gaps.
                 </div>
-                <p style={{ fontSize: '0.6875rem', color: '#B45309', marginTop: '4px' }}>
-                  Practice GitHub Actions and automated build pipelines.
-                </p>
-              </div>
+              )}
 
               <button
                 onClick={() => onNavigate('student-preparation')}
                 style={{ background: 'none', border: 'none', color: '#4F46E5', fontWeight: 700, fontSize: '0.75rem', cursor: 'pointer', textAlign: 'left', marginTop: '4px' }}
               >
-                Start Learning Path →
+                Launch Skill Remediation Roadmap →
               </button>
             </div>
           </div>
@@ -435,12 +427,8 @@ export default function OpportunityDetails({ jobId, onBack, onNavigate, onPrepar
           </h4>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {(match.why_strong_candidate || [
-              'Strong programming skills in Python and problem solving',
-              'Relevant project experience in backend development',
-              'Good alignment with the role and your career interests',
-              'Preferred location matches your choice',
-              'Your profile matches the characteristics of past successful candidates'
+            {(match.why_strong_candidate && match.why_strong_candidate.length > 0 ? match.why_strong_candidate : [
+              'Basic academic criteria verified for this position'
             ]).map((reason, idx) => (
               <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '0.8125rem', color: '#334155' }}>
                 <CheckCircle2 size={16} color="#10B981" style={{ flexShrink: 0, marginTop: '2px' }} />
@@ -452,15 +440,21 @@ export default function OpportunityDetails({ jobId, onBack, onNavigate, onPrepar
 
         {/* Alumni & Success Insights */}
         <div className="card" style={{ display: 'flex', alignItems: 'center', gap: '20px', padding: '24px' }}>
-          <RadialGauge value={78} size={90} strokeWidth={8} color="#3B82F6" label="Interview Conversion" />
+          <RadialGauge 
+            value={match.alumni_insights?.interview_conversion_rate ?? Math.min(95, Math.round((match.overall_match || 70) * 0.9))} 
+            size={90} 
+            strokeWidth={8} 
+            color="#3B82F6" 
+            label="Conversion" 
+          />
 
           <div>
             <h4 style={{ fontSize: '0.9375rem', fontWeight: 800, color: '#0F172A' }}>Alumni & Success Insights</h4>
             <p style={{ fontSize: '0.75rem', color: '#64748B', marginTop: '4px' }}>
-              Students with a similar profile have a 78% interview conversion rate for this role.
+              {match.alumni_insights?.historical_cohort_notes || 'Students with comparable skill alignment had high conversion rates in technical rounds.'}
             </p>
             <div style={{ marginTop: '8px', padding: '6px 12px', backgroundColor: '#ECFDF5', border: '1px solid #A7F3D0', borderRadius: '8px', fontSize: '0.75rem', color: '#065F46', fontWeight: 700 }}>
-              🚀 1.4x more likely to be shortlisted
+              🚀 {match.alumni_insights?.shortlist_multiplier || '1.3x'} more likely to be shortlisted
             </div>
           </div>
         </div>

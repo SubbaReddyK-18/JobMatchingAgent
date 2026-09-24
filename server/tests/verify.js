@@ -56,7 +56,7 @@ async function testBackend() {
     Eligibility: CGPA >= 8.0, CSE or ISE branch.
     Package: 30 to 45 LPA.
     `;
-    const structured = JDAnalyzer.analyzeJobDescription(rawJd, 'Google');
+    const structured = await JDAnalyzer.analyzeJobDescription(rawJd, 'Google');
     console.log('✓ JD AI Parser Output:', {
         title: structured.title,
         location: structured.location,

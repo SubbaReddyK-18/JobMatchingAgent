@@ -105,14 +105,14 @@ router.get('/:id', authenticateToken, async (req, res) => {
 });
 
 // AI Job Description Structuring endpoint
-router.post('/analyze-jd', authenticateToken, (req, res) => {
+router.post('/analyze-jd', authenticateToken, async (req, res) => {
     try {
         const { raw_text, company_name } = req.body;
         if (!raw_text) {
             return res.status(400).json({ error: 'Job description text is required for AI analysis' });
         }
 
-        const structuredResult = JDAnalyzer.analyzeJobDescription(raw_text, company_name);
+        const structuredResult = await JDAnalyzer.analyzeJobDescription(raw_text, company_name);
         res.json({
             message: 'Job description successfully parsed and structured by AI',
             structured: structuredResult

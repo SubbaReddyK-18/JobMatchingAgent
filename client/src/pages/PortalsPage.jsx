@@ -20,24 +20,21 @@ export default function PortalsPage({ onSelectPortal, onBackToLanding }) {
           style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}
         >
           <div style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)',
+            width: '44px',
+            height: '44px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            color: 'white',
-            boxShadow: '0 4px 12px rgba(79, 70, 229, 0.35)'
+            justifyContent: 'center'
           }}>
-            <Sparkles size={18} />
+            <img src="/jobmatch-symbol.png" alt="JobMatch AI" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
           <div>
-            <div style={{ fontSize: '1.1875rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em', lineHeight: 1.1 }}>
-              JobMatch AI
+            <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#0F172A', letterSpacing: '-0.02em', lineHeight: 1.1, display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <span>JobMatch</span>
+              <span style={{ color: '#F43F5E', fontWeight: 900 }}>AI</span>
             </div>
             <div style={{ fontSize: '0.6875rem', color: '#64748B', fontWeight: 500 }}>
-              Agent 50 | Job Matching Agent
+              Agent 50 | Placement Intelligence Platform
             </div>
           </div>
         </div>
@@ -397,6 +394,24 @@ export default function PortalsPage({ onSelectPortal, onBackToLanding }) {
           <div className="font-script" style={{ color: '#818CF8', fontSize: '1.125rem' }}>
             People Potential Progress
           </div>
+        </div>
+
+        {/* Creator Attribution */}
+        <div style={{
+          textAlign: 'center',
+          padding: '16px 0 8px',
+          color: '#64748B',
+          fontSize: '0.875rem',
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '6px'
+        }}>
+          <span>Crafted with</span>
+          <span style={{ color: '#EF4444', fontSize: '1rem' }}>❤️</span>
+          <span>by</span>
+          <span style={{ fontWeight: 800, color: '#4F46E5', letterSpacing: '0.05em' }}>KOWSIK</span>
         </div>
       </main>
     </div>
